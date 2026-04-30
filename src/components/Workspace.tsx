@@ -98,8 +98,10 @@ export function Workspace({ onExit }: Props) {
       return;
     }
     const generated = generateTestCases(config, fields);
-    setCases(generated);
-    toast.success(`Generated ${generated.length} test cases`);
+    const ruleCases = generateRuleCases(config, fields, rules);
+    const all = [...generated, ...ruleCases];
+    setCases(all);
+    toast.success(`Generated ${all.length} test cases${ruleCases.length ? ` (incl. ${ruleCases.length} from rules)` : ""}`);
   };
 
   const spec = useMemo(() => buildSpecFile(config, cases), [config, cases]);
@@ -137,6 +139,7 @@ export function Workspace({ onExit }: Props) {
     setConfig(DEFAULT_CONFIG);
     setFields([]);
     setCases([]);
+    setRules([]);
     setStep(1);
     setReachable(1);
     toast.success("Project reset");
