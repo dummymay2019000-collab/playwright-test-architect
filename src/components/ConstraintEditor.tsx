@@ -94,12 +94,14 @@ function ConstraintFields({ field, onChange }: { field: FieldSchema; onChange: (
       )}
 
       <div className="md:col-span-2">
-        <Label>Enum values (comma-separated)</Label>
-        <Input
-          value={(c.enumValues ?? []).join(", ")}
-          onChange={e => upd({ enumValues: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-          placeholder="active, inactive, pending"
+        <Label>Enum / allowed values (comma-separated)</Label>
+        <EnumInput
+          values={c.enumValues ?? []}
+          onCommit={vals => upd({ enumValues: vals.length > 0 ? vals : undefined })}
         />
+        <p className="text-xs text-muted-foreground mt-1">
+          Tip: type values separated by commas, e.g. <code className="font-mono">active, inactive, pending</code>. Use quotes if a value contains a comma: <code className="font-mono">"a,b", c</code>.
+        </p>
       </div>
 
       <div className="md:col-span-2">
