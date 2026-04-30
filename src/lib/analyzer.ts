@@ -46,7 +46,11 @@ export function flattenFields(obj: unknown, basePath = ""): FieldSchema[] {
   return out;
 }
 
-export function safeParseJson(text: string): { ok: true; value: unknown } | { ok: false; error: string } {
+export type JsonParseResult =
+  | { ok: true; value: unknown; error?: undefined }
+  | { ok: false; value?: undefined; error: string };
+
+export function safeParseJson(text: string): JsonParseResult {
   try {
     return { ok: true, value: JSON.parse(text) };
   } catch (e) {
