@@ -89,9 +89,60 @@ export interface GeneratedTestCase {
 
 export type Step = 1 | 2 | 3 | 4 | 5;
 
+// ---------- Conditional rules ----------
+
+export type ComparatorOp =
+  | "eq"
+  | "neq"
+  | "in"
+  | "nin"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "regex"
+  | "present"
+  | "absent";
+
+export interface Condition {
+  kind: "condition";
+  id: string;
+  path: string;
+  op: ComparatorOp;
+  // Stored as string; coerced to number/array based on op at evaluation/generation time.
+  value: string;
+}
+
+export interface ConditionGroup {
+  kind: "group";
+  id: string;
+  combinator: "and" | "or";
+  children: ConditionNode[];
+}
+
+export type ConditionNode = Condition | ConditionGroup;
+
+export type ThenAction =
+  | { type: "required" }
+  | { type: "forbidden" }
+  | { type: "in"; values: string[] }
+  | { type: "nin"; values: string[] }
+  | { type: "between"; min?: number; max?: number }
+  | { type: "equals"; value: string };
+
+export interface ConditionalRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  when: ConditionGroup;
+  thenPath: string;
+  then: ThenAction;
+}
+
 export interface ProjectState {
   config: RequestConfig;
   fields: FieldSchema[];
   cases: GeneratedTestCase[];
+  rules?: ConditionalRule[];
   step: Step;
 }
