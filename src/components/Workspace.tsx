@@ -3,6 +3,7 @@ import { StepSidebar } from "@/components/StepSidebar";
 import { RequestSetupForm } from "@/components/RequestSetupForm";
 import { PayloadAnalysisTable } from "@/components/PayloadAnalysisTable";
 import { ConstraintEditor } from "@/components/ConstraintEditor";
+import { RuleEditor } from "@/components/RuleEditor";
 import { TestCaseTable } from "@/components/TestCaseTable";
 import { SummaryCards } from "@/components/SummaryCards";
 import { ExportPreview } from "@/components/ExportPreview";
@@ -12,9 +13,10 @@ import { ArrowLeft, ArrowRight, Home } from "lucide-react";
 import { toast } from "sonner";
 import { analyzePayload, safeParseJson } from "@/lib/analyzer";
 import { generateTestCases } from "@/lib/generator";
+import { generateRuleCases } from "@/lib/rules";
 import { buildEnvExample, buildSpecFile } from "@/lib/specBuilder";
 import { DEFAULT_CONFIG, clearProject, loadProject, saveProject } from "@/lib/storage";
-import type { FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step } from "@/lib/types";
+import type { ConditionalRule, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step } from "@/lib/types";
 
 interface Props {
   onExit: () => void;
@@ -24,6 +26,7 @@ export function Workspace({ onExit }: Props) {
   const [config, setConfig] = useState<RequestConfig>(DEFAULT_CONFIG);
   const [fields, setFields] = useState<FieldSchema[]>([]);
   const [cases, setCases] = useState<GeneratedTestCase[]>([]);
+  const [rules, setRules] = useState<ConditionalRule[]>([]);
   const [step, setStep] = useState<Step>(1);
   const [reachable, setReachable] = useState<Step>(1);
 
@@ -34,6 +37,7 @@ export function Workspace({ onExit }: Props) {
       setConfig(saved.config ?? DEFAULT_CONFIG);
       setFields(saved.fields ?? []);
       setCases(saved.cases ?? []);
+      setRules(saved.rules ?? []);
       setStep(saved.step ?? 1);
       const r = Math.max(1, saved.step ?? 1) as Step;
       setReachable(r);
@@ -42,8 +46,8 @@ export function Workspace({ onExit }: Props) {
 
   // Persist
   useEffect(() => {
-    saveProject({ config, fields, cases, step });
-  }, [config, fields, cases, step]);
+    saveProject({ config, fields, cases, rules, step });
+  }, [config, fields, cases, rules, step]);
 
   const jsonError = useMemo(() => {
     if (!config.bodyJson.trim()) return null;
