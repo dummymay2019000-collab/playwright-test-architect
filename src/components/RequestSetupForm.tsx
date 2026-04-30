@@ -31,7 +31,8 @@ export function RequestSetupForm({ config, onChange, onReset }: Props) {
   const jsonError = useMemo(() => {
     if (!config.bodyJson.trim()) return null;
     const r = safeParseJson(config.bodyJson);
-    return r.ok ? null : r.error;
+    if (r.ok) return null;
+    return r.error;
   }, [config.bodyJson]);
 
   return (
