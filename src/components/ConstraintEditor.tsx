@@ -137,3 +137,51 @@ function NumField({ label, value, onChange }: { label: string; value: number | u
     </div>
   );
 }
+
+function parseEnum(raw: string): string[] {
+  // Supports quoted values that contain commas: "a,b", c, "d"
+  const out: string[] = [];
+  let buf = "";
+  let inQuote = false;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch === '"') {
+      inQuote = !inQuote;
+      continue;
+    }
+    if (ch === "," && !inQuote) {
+      const v = buf.trim();
+      if (v !== "") out.push(v);
+      buf = "";
+      continue;
+    }
+    buf += ch;
+  }
+  const last = buf.trim();
+  if (last !== "") out.push(last);
+  return out;
+}
+
+function EnumInput({ values, onCommit }: { values: string[]; onCommit: (vals: string[]) => void }) {
+  // Local string state so the user can freely type commas, spaces, and trailing separators
+  // without the parent re-rendering and clobbering the input.
+  const [text, setText] = useState<string>(values.join(", "));
+
+  // Re-sync when external values change (e.g., switching field / reset) — but only when
+  // they actually differ from what the local text would parse to.
+  useEffect(() => {
+    const parsed = parseEnum(text);
+    const same = parsed.length === values.length && parsed.every((v, i) => v === values[i]);
+    if (!same) setText(values.join(", "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values.join("\u0000")]);
+
+  return (
+    <Input
+      value={text}
+      onChange={e => setText(e.target.value)}
+      onBlur={() => onCommit(parseEnum(text))}
+      placeholder='active, inactive, pending'
+    />
+  );
+}
