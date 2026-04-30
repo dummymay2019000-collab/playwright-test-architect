@@ -57,5 +57,6 @@ export function safeParseJson(text: string): { ok: true; value: unknown } | { ok
 export function analyzePayload(jsonText: string): { fields: FieldSchema[]; error?: string } {
   const parsed = safeParseJson(jsonText);
   if (!parsed.ok) return { fields: [], error: parsed.error };
-  return { fields: flattenFields(parsed.value) };
+  const { value } = parsed;
+  return { fields: flattenFields(value) };
 }
