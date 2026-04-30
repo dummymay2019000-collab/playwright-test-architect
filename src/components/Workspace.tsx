@@ -190,7 +190,10 @@ export function Workspace({ onExit }: Props) {
           )}
 
           {step === 3 && (
-            <ConstraintEditor fields={fields} onChange={updateConstraints} />
+            <>
+              <ConstraintEditor fields={fields} onChange={updateConstraints} />
+              <RuleEditor rules={rules} fields={fields} onChange={setRules} />
+            </>
           )}
 
           {step === 4 && (
