@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { analyzePayload, safeParseJson } from "@/lib/analyzer";
 import { generateTestCases } from "@/lib/generator";
 import { generateRuleCases } from "@/lib/rules";
-import { buildEnvExample, buildSpecFile } from "@/lib/specBuilder";
+import { buildEnvExample, buildSpecFile, type AttachmentMode } from "@/lib/specBuilder";
 import { DEFAULT_CONFIG, clearProject, loadProject, saveProject } from "@/lib/storage";
 import type { ConditionalRule, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step } from "@/lib/types";
 
@@ -29,6 +29,7 @@ export function Workspace({ onExit }: Props) {
   const [rules, setRules] = useState<ConditionalRule[]>([]);
   const [step, setStep] = useState<Step>(1);
   const [reachable, setReachable] = useState<Step>(1);
+  const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>("separate");
 
   // Load draft once
   useEffect(() => {
@@ -104,7 +105,7 @@ export function Workspace({ onExit }: Props) {
     toast.success(`Generated ${all.length} test cases${ruleCases.length ? ` (incl. ${ruleCases.length} from rules)` : ""}`);
   };
 
-  const spec = useMemo(() => buildSpecFile(config, cases), [config, cases]);
+  const spec = useMemo(() => buildSpecFile(config, cases, { attachmentMode }), [config, cases, attachmentMode]);
   const envExample = useMemo(() => buildEnvExample(config), [config]);
 
   const handleNext = () => {
@@ -207,7 +208,14 @@ export function Workspace({ onExit }: Props) {
           {step === 5 && (
             <>
               <SummaryCards cases={cases} />
-              <ExportPreview spec={spec} envExample={envExample} config={config} cases={cases} />
+              <ExportPreview
+                spec={spec}
+                envExample={envExample}
+                config={config}
+                cases={cases}
+                attachmentMode={attachmentMode}
+                onAttachmentModeChange={setAttachmentMode}
+              />
             </>
           )}
         </div>
