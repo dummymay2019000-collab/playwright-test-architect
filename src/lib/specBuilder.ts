@@ -193,21 +193,40 @@ async function attachJson(testInfo: unknown, name: string, data: unknown): Promi
 }
 
 // ---------- Tests ----------
+//
+// HOW TO RUN A SINGLE TEST CASE:
+//   Each test is tagged with @id-<caseId> and @<category>. Examples:
+//     npx playwright test ${(config.apiName || "api").toLowerCase().replace(/\\s+/g, "-")}.spec.ts --grep "@id-<caseId>"
+//     npx playwright test --grep "@positive"
+//     npx playwright test -g "exact test name substring"
+//   You can also use Playwright UI mode and click a single test:
+//     npx playwright test --ui
+//
+// ATTACHMENT MODE: ${JSON.stringify(attachmentMode)}
+//   - "separate": request.json and response.json are attached as two entries
+//   - "combined": a single payloads.json contains { request, response }
+const ATTACHMENT_MODE: "separate" | "combined" = ${JSON.stringify(attachmentMode)};
+
 test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
   for (const tc of CASES) {
-    test(\`[\${tc.category}] \${tc.name}\`, async ({}, testInfo) => {
+    const title = \`[\${tc.category}] \${tc.name} @id-\${tc.id} @\${tc.category}\`;
+    test(title, async ({}, testInfo) => {
       const ctx = await pwRequest.newContext({ baseURL: BASE_URL });
       const headers = applyHeadersOverride(tc);
       const payload = buildPayload(tc);
       const requestBody = METHOD === "GET" ? undefined : payload;
 
-      // Attach request payload to the Playwright HTML report when supported
-      await attachJson(testInfo, "request.json", {
+      const requestSnapshot = {
         method: METHOD,
         url: \`\${BASE_URL}\${ENDPOINT}\`,
         headers: redactHeaders(headers),
         body: requestBody ?? null,
-      });
+      };
+
+      // Attach request payload only in "separate" mode (combined attaches once after response)
+      if (ATTACHMENT_MODE === "separate") {
+        await attachJson(testInfo, "request.json", requestSnapshot);
+      }
 
       const response = await ctx.fetch(ENDPOINT, {
         method: METHOD,
@@ -220,12 +239,21 @@ test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
       const respBody = safeParse(respText);
       const respHeaders = response.headers();
 
-      // Attach response payload to the Playwright HTML report when supported
-      await attachJson(testInfo, "response.json", {
+      const responseSnapshot = {
         status: actual,
         headers: respHeaders,
         body: respBody,
-      });
+      };
+
+      if (ATTACHMENT_MODE === "separate") {
+        await attachJson(testInfo, "response.json", responseSnapshot);
+      } else {
+        // Combined: one tidy attachment with both payloads
+        await attachJson(testInfo, "payloads.json", {
+          request: requestSnapshot,
+          response: responseSnapshot,
+        });
+      }
 
       const result = classifyResponse(actual, tc.expectedStatus);
       results.push({
@@ -237,17 +265,8 @@ test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
         result,
         risk: tc.risk,
         reason: tc.reason,
-        request: {
-          method: METHOD,
-          url: \`\${BASE_URL}\${ENDPOINT}\`,
-          headers: redactHeaders(headers),
-          body: requestBody ?? null,
-        },
-        response: {
-          status: actual,
-          headers: respHeaders,
-          body: respBody,
-        },
+        request: requestSnapshot,
+        response: responseSnapshot,
       });
 
       expect.soft(actual, \`Expected \${tc.expectedStatus} for "\${tc.name}", got \${actual}\`).toBe(tc.expectedStatus);
