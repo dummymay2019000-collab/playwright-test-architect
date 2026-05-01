@@ -173,7 +173,7 @@ function redactHeaders(h: Record<string, string>): Record<string, string> {
 // ---------- Tests ----------
 test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
   for (const tc of CASES) {
-    test(\`[\${tc.category}] \${tc.name}\`, async (testInfo) => {
+    test(\`[\${tc.category}] \${tc.name}\`, async ({}, testInfo) => {
       const ctx = await pwRequest.newContext({ baseURL: BASE_URL });
       const headers = applyHeadersOverride(tc);
       const payload = buildPayload(tc);
