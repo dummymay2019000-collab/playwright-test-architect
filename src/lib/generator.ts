@@ -229,16 +229,34 @@ export function generateTestCases(config: RequestConfig, fields: FieldSchema[]):
       }));
     }
 
-    if (flags.enumVariations && c.enumValues && c.enumValues.length > 0) {
-      cases.push(mkCase({
-        name: `Invalid enum value for ${f.path}`,
-        category: "validation",
-        fieldPath: f.path,
-        override: { [f.path]: "__not_in_enum__" },
-        expectedStatus: validation,
-        risk: "medium",
-        reason: `Allowed values: ${c.enumValues.join(", ")}.`,
-      }));
+    if (c.enumValues && c.enumValues.length > 0) {
+      // Coverage: one positive case per allowed enum value
+      for (const ev of c.enumValues) {
+        // Coerce to number/boolean if the field type suggests it
+        let coerced: unknown = ev;
+        if (f.type === "number" && ev.trim() !== "" && !isNaN(Number(ev))) coerced = Number(ev);
+        else if (f.type === "boolean" && (ev === "true" || ev === "false")) coerced = ev === "true";
+        cases.push(mkCase({
+          name: `Enum coverage — ${f.path} = ${ev}`,
+          category: "positive",
+          fieldPath: f.path,
+          override: { [f.path]: coerced },
+          expectedStatus: success,
+          risk: "low",
+          reason: `Verifies API accepts allowed enum value "${ev}" for ${f.path}.`,
+        }));
+      }
+      if (flags.enumVariations) {
+        cases.push(mkCase({
+          name: `Invalid enum value for ${f.path}`,
+          category: "validation",
+          fieldPath: f.path,
+          override: { [f.path]: "__not_in_enum__" },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: `Allowed values: ${c.enumValues.join(", ")}.`,
+        }));
+      }
     }
 
     if (flags.precision && typeof c.precision === "number" && f.type === "number") {
