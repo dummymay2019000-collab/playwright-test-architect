@@ -140,24 +140,77 @@ interface CaseResult {
   result: "pass" | "fail";
   risk: string;
   reason: string;
+  request: {
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    body: unknown;
+  };
+  response: {
+    status: number;
+    headers: Record<string, string>;
+    body: unknown;
+  };
 }
 const results: CaseResult[] = [];
+
+function safeParse(text: string): unknown {
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+function redactHeaders(h: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(h)) {
+    if (/^authorization$|api[-_]?key|token|secret|cookie/i.test(k)) {
+      out[k] = v ? "***redacted***" : v;
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
 
 // ---------- Tests ----------
 test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
   for (const tc of CASES) {
-    test(\`[\${tc.category}] \${tc.name}\`, async () => {
+    test(\`[\${tc.category}] \${tc.name}\`, async (testInfo) => {
       const ctx = await pwRequest.newContext({ baseURL: BASE_URL });
       const headers = applyHeadersOverride(tc);
       const payload = buildPayload(tc);
+      const requestBody = METHOD === "GET" ? undefined : payload;
+
+      // Attach request payload to the Playwright HTML report
+      await testInfo.attach("request.json", {
+        body: JSON.stringify({
+          method: METHOD,
+          url: \`\${BASE_URL}\${ENDPOINT}\`,
+          headers: redactHeaders(headers),
+          body: requestBody ?? null,
+        }, null, 2),
+        contentType: "application/json",
+      });
 
       const response = await ctx.fetch(ENDPOINT, {
         method: METHOD,
         headers,
-        data: METHOD === "GET" ? undefined : payload,
+        data: requestBody,
       });
 
       const actual = response.status();
+      const respText = await response.text();
+      const respBody = safeParse(respText);
+      const respHeaders = response.headers();
+
+      // Attach response payload to the Playwright HTML report
+      await testInfo.attach("response.json", {
+        body: JSON.stringify({
+          status: actual,
+          headers: respHeaders,
+          body: respBody,
+        }, null, 2),
+        contentType: "application/json",
+      });
+
       const result = classifyResponse(actual, tc.expectedStatus);
       results.push({
         id: tc.id,
@@ -168,6 +221,17 @@ test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
         result,
         risk: tc.risk,
         reason: tc.reason,
+        request: {
+          method: METHOD,
+          url: \`\${BASE_URL}\${ENDPOINT}\`,
+          headers: redactHeaders(headers),
+          body: requestBody ?? null,
+        },
+        response: {
+          status: actual,
+          headers: respHeaders,
+          body: respBody,
+        },
       });
 
       expect.soft(actual, \`Expected \${tc.expectedStatus} for "\${tc.name}", got \${actual}\`).toBe(tc.expectedStatus);
