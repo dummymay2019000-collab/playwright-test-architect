@@ -170,6 +170,17 @@ function redactHeaders(h: Record<string, string>): Record<string, string> {
   return out;
 }
 
+async function attachJson(testInfo: unknown, name: string, data: unknown): Promise<void> {
+  const info = testInfo as { attach?: (name: string, options: { body: string; contentType: string }) => Promise<void> | void } | undefined;
+
+  if (typeof info?.attach === "function") {
+    await info.attach(name, {
+      body: JSON.stringify(data, null, 2),
+      contentType: "application/json",
+    });
+  }
+}
+
 // ---------- Tests ----------
 test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
   for (const tc of CASES) {
