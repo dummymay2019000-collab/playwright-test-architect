@@ -190,15 +190,12 @@ test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
       const payload = buildPayload(tc);
       const requestBody = METHOD === "GET" ? undefined : payload;
 
-      // Attach request payload to the Playwright HTML report
-      await testInfo.attach("request.json", {
-        body: JSON.stringify({
-          method: METHOD,
-          url: \`\${BASE_URL}\${ENDPOINT}\`,
-          headers: redactHeaders(headers),
-          body: requestBody ?? null,
-        }, null, 2),
-        contentType: "application/json",
+      // Attach request payload to the Playwright HTML report when supported
+      await attachJson(testInfo, "request.json", {
+        method: METHOD,
+        url: \`\${BASE_URL}\${ENDPOINT}\`,
+        headers: redactHeaders(headers),
+        body: requestBody ?? null,
       });
 
       const response = await ctx.fetch(ENDPOINT, {
@@ -212,14 +209,11 @@ test.describe(${JSON.stringify(config.apiName || "API tests")}, () => {
       const respBody = safeParse(respText);
       const respHeaders = response.headers();
 
-      // Attach response payload to the Playwright HTML report
-      await testInfo.attach("response.json", {
-        body: JSON.stringify({
-          status: actual,
-          headers: respHeaders,
-          body: respBody,
-        }, null, 2),
-        contentType: "application/json",
+      // Attach response payload to the Playwright HTML report when supported
+      await attachJson(testInfo, "response.json", {
+        status: actual,
+        headers: respHeaders,
+        body: respBody,
       });
 
       const result = classifyResponse(actual, tc.expectedStatus);
