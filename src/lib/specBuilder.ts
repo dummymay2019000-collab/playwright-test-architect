@@ -12,7 +12,18 @@ function buildHeadersObject(config: RequestConfig): Record<string, string> {
   return out;
 }
 
-export function buildSpecFile(config: RequestConfig, cases: GeneratedTestCase[]): string {
+export type AttachmentMode = "separate" | "combined";
+
+export interface SpecBuildOptions {
+  attachmentMode?: AttachmentMode;
+}
+
+export function buildSpecFile(
+  config: RequestConfig,
+  cases: GeneratedTestCase[],
+  options: SpecBuildOptions = {},
+): string {
+  const attachmentMode: AttachmentMode = options.attachmentMode ?? "separate";
   const enabled = cases.filter(c => c.enabled);
   const headers = buildHeadersObject(config);
   const tokenEnv = config.auth.envVarName || "API_TOKEN";
