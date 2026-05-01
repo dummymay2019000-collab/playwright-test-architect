@@ -1,22 +1,46 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Download, FileCode2, FileText } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Copy, Download, FileCode2, FileText, Terminal } from "lucide-react";
+import { useMemo, useState } from "react";
 import { copyToClipboard, downloadTextFile } from "@/lib/download";
 import { toast } from "sonner";
 import type { GeneratedTestCase, RequestConfig } from "@/lib/types";
+import type { AttachmentMode } from "@/lib/specBuilder";
 
 interface Props {
   spec: string;
   envExample: string;
   config: RequestConfig;
   cases: GeneratedTestCase[];
+  attachmentMode: AttachmentMode;
+  onAttachmentModeChange: (m: AttachmentMode) => void;
 }
 
-export function ExportPreview({ spec, envExample, config, cases }: Props) {
+export function ExportPreview({
+  spec,
+  envExample,
+  config,
+  cases,
+  attachmentMode,
+  onAttachmentModeChange,
+}: Props) {
   const enabled = cases.filter(c => c.enabled);
   const slug = (config.apiName || "api").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "api";
   const specName = `${slug}.spec.ts`;
+
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(enabled[0]?.id ?? "");
+  const selectedCase = useMemo(
+    () => enabled.find(c => c.id === selectedCaseId) ?? enabled[0],
+    [enabled, selectedCaseId],
+  );
+
+  const grepCommand = selectedCase
+    ? `npx playwright test ${specName} --grep "@id-${selectedCase.id}"`
+    : `npx playwright test ${specName}`;
 
   const copy = async (text: string, label: string) => {
     const ok = await copyToClipboard(text);
@@ -54,7 +78,74 @@ export function ExportPreview({ spec, envExample, config, cases }: Props) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
+        {/* Export options */}
+        <div className="grid gap-6 md:grid-cols-2 rounded-lg border border-border bg-muted/30 p-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Report attachments</Label>
+            <p className="text-xs text-muted-foreground">
+              How request &amp; response payloads are attached to the Playwright HTML report.
+            </p>
+            <RadioGroup
+              value={attachmentMode}
+              onValueChange={(v) => onAttachmentModeChange(v as AttachmentMode)}
+              className="mt-2 space-y-1.5"
+            >
+              <div className="flex items-start gap-2">
+                <RadioGroupItem value="separate" id="att-separate" className="mt-0.5" />
+                <Label htmlFor="att-separate" className="font-normal cursor-pointer">
+                  Separate <span className="text-muted-foreground">— two attachments: request.json and response.json</span>
+                </Label>
+              </div>
+              <div className="flex items-start gap-2">
+                <RadioGroupItem value="combined" id="att-combined" className="mt-0.5" />
+                <Label htmlFor="att-combined" className="font-normal cursor-pointer">
+                  Combined <span className="text-muted-foreground">— single payloads.json with {`{ request, response }`}</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-1.5">
+              <Terminal className="w-3.5 h-3.5" /> Run a specific test case
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Each case is tagged <code className="px-1 py-0.5 rounded bg-muted text-foreground">@id-&lt;caseId&gt;</code>. Pick one to get the exact command.
+            </p>
+            <Select
+              value={selectedCase?.id ?? ""}
+              onValueChange={setSelectedCaseId}
+              disabled={enabled.length === 0}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select a test case" />
+              </SelectTrigger>
+              <SelectContent>
+                {enabled.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    [{c.category}] {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="relative mt-2">
+              <pre className="code-surface px-3 py-2 pr-12 text-xs font-mono whitespace-pre-wrap break-all">
+                {grepCommand}
+              </pre>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="absolute top-1.5 right-1.5 h-7"
+                onClick={() => copy(grepCommand, "Command")}
+                disabled={!selectedCase}
+              >
+                <Copy className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <Tabs defaultValue="spec">
           <TabsList>
             <TabsTrigger value="spec"><FileCode2 className="w-3.5 h-3.5 mr-1.5" /> {specName}</TabsTrigger>
