@@ -373,12 +373,12 @@ function ThenValue({ then, onChange }: { then: ThenAction; onChange: (t: ThenAct
       />
     );
   }
-  if (then.type === "equals") {
+  if (then.type === "equals" || then.type === "includeWith") {
     return (
       <Input
         value={then.value}
         onChange={e => onChange({ ...then, value: e.target.value })}
-        placeholder="expected value"
+        placeholder={then.type === "includeWith" ? "value to inject" : "expected value"}
         className="font-mono text-sm"
       />
     );
