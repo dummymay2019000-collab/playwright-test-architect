@@ -48,7 +48,7 @@ function buildPayloadForCase(basePayload: unknown, tc: GeneratedTestCase): unkno
 
 // ---------------- Naming + step building ----------------
 
-const CATEGORY_PREFIX: Record<string, string> = {
+export const DEFAULT_CATEGORY_LABELS: Record<string, string> = {
   positive: "Positive",
   validation: "Validation",
   boundary: "Boundary",
@@ -58,16 +58,77 @@ const CATEGORY_PREFIX: Record<string, string> = {
   custom: "Business rule",
 };
 
+export const DEFAULT_RISK_LABELS: Record<string, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export type RouteSlugStyle = "verbatim" | "kebab" | "snake" | "noSlash";
+
+export interface NamingTemplate {
+  /** Title template with tokens: {prefix} {method} {route} {category} {risk} {name} {id} */
+  titleTemplate: string;
+  /** Optional fixed prefix injected as {prefix}. */
+  prefix: string;
+  /** How to render {route}. */
+  routeStyle: RouteSlugStyle;
+  /** Per-category label overrides (replaces DEFAULT_CATEGORY_LABELS). */
+  categoryLabels: Record<string, string>;
+  /** Per-risk label overrides. */
+  riskLabels: Record<string, string>;
+}
+
+export const DEFAULT_NAMING_TEMPLATE: NamingTemplate = {
+  titleTemplate: "{prefix}[{method} {route}] {category}: {name}",
+  prefix: "",
+  routeStyle: "verbatim",
+  categoryLabels: { ...DEFAULT_CATEGORY_LABELS },
+  riskLabels: { ...DEFAULT_RISK_LABELS },
+};
+
 const PRIORITY_BY_RISK: Record<string, { ado: 1 | 2 | 3 | 4; jira: "Highest" | "High" | "Medium" }> = {
   high: { ado: 1, jira: "Highest" },
   medium: { ado: 2, jira: "High" },
   low: { ado: 3, jira: "Medium" },
 };
 
-export function buildTestCaseTitle(config: RequestConfig, tc: GeneratedTestCase): string {
-  const route = `${config.method} ${config.endpoint || "/"}`;
-  const prefix = CATEGORY_PREFIX[tc.category] ?? "Test";
-  return `[${route}] ${prefix}: ${tc.name}`;
+function formatRoute(endpoint: string, style: RouteSlugStyle): string {
+  const ep = endpoint || "/";
+  switch (style) {
+    case "kebab":
+      return ep.replace(/^\/+/, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "root";
+    case "snake":
+      return ep.replace(/^\/+/, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/(^_|_$)/g, "") || "root";
+    case "noSlash":
+      return ep.replace(/^\/+/, "") || "root";
+    case "verbatim":
+    default:
+      return ep;
+  }
+}
+
+export function buildTestCaseTitle(
+  config: RequestConfig,
+  tc: GeneratedTestCase,
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
+): string {
+  const route = formatRoute(config.endpoint, template.routeStyle);
+  const category = template.categoryLabels[tc.category] ?? DEFAULT_CATEGORY_LABELS[tc.category] ?? "Test";
+  const risk = template.riskLabels[tc.risk] ?? DEFAULT_RISK_LABELS[tc.risk] ?? tc.risk;
+  const prefix = template.prefix ? `${template.prefix} ` : "";
+  const replacements: Record<string, string> = {
+    prefix,
+    method: config.method,
+    route,
+    category,
+    risk,
+    name: tc.name,
+    id: tc.id,
+  };
+  return template.titleTemplate.replace(/\{(\w+)\}/g, (_, key) =>
+    replacements[key] !== undefined ? replacements[key] : `{${key}}`,
+  );
 }
 
 interface StructuredStep {
