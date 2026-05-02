@@ -48,7 +48,7 @@ function buildPayloadForCase(basePayload: unknown, tc: GeneratedTestCase): unkno
 
 // ---------------- Naming + step building ----------------
 
-const CATEGORY_PREFIX: Record<string, string> = {
+export const DEFAULT_CATEGORY_LABELS: Record<string, string> = {
   positive: "Positive",
   validation: "Validation",
   boundary: "Boundary",
@@ -58,16 +58,77 @@ const CATEGORY_PREFIX: Record<string, string> = {
   custom: "Business rule",
 };
 
+export const DEFAULT_RISK_LABELS: Record<string, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export type RouteSlugStyle = "verbatim" | "kebab" | "snake" | "noSlash";
+
+export interface NamingTemplate {
+  /** Title template with tokens: {prefix} {method} {route} {category} {risk} {name} {id} */
+  titleTemplate: string;
+  /** Optional fixed prefix injected as {prefix}. */
+  prefix: string;
+  /** How to render {route}. */
+  routeStyle: RouteSlugStyle;
+  /** Per-category label overrides (replaces DEFAULT_CATEGORY_LABELS). */
+  categoryLabels: Record<string, string>;
+  /** Per-risk label overrides. */
+  riskLabels: Record<string, string>;
+}
+
+export const DEFAULT_NAMING_TEMPLATE: NamingTemplate = {
+  titleTemplate: "{prefix}[{method} {route}] {category}: {name}",
+  prefix: "",
+  routeStyle: "verbatim",
+  categoryLabels: { ...DEFAULT_CATEGORY_LABELS },
+  riskLabels: { ...DEFAULT_RISK_LABELS },
+};
+
 const PRIORITY_BY_RISK: Record<string, { ado: 1 | 2 | 3 | 4; jira: "Highest" | "High" | "Medium" }> = {
   high: { ado: 1, jira: "Highest" },
   medium: { ado: 2, jira: "High" },
   low: { ado: 3, jira: "Medium" },
 };
 
-export function buildTestCaseTitle(config: RequestConfig, tc: GeneratedTestCase): string {
-  const route = `${config.method} ${config.endpoint || "/"}`;
-  const prefix = CATEGORY_PREFIX[tc.category] ?? "Test";
-  return `[${route}] ${prefix}: ${tc.name}`;
+function formatRoute(endpoint: string, style: RouteSlugStyle): string {
+  const ep = endpoint || "/";
+  switch (style) {
+    case "kebab":
+      return ep.replace(/^\/+/, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "root";
+    case "snake":
+      return ep.replace(/^\/+/, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/(^_|_$)/g, "") || "root";
+    case "noSlash":
+      return ep.replace(/^\/+/, "") || "root";
+    case "verbatim":
+    default:
+      return ep;
+  }
+}
+
+export function buildTestCaseTitle(
+  config: RequestConfig,
+  tc: GeneratedTestCase,
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
+): string {
+  const route = formatRoute(config.endpoint, template.routeStyle);
+  const category = template.categoryLabels[tc.category] ?? DEFAULT_CATEGORY_LABELS[tc.category] ?? "Test";
+  const risk = template.riskLabels[tc.risk] ?? DEFAULT_RISK_LABELS[tc.risk] ?? tc.risk;
+  const prefix = template.prefix ? `${template.prefix} ` : "";
+  const replacements: Record<string, string> = {
+    prefix,
+    method: config.method,
+    route,
+    category,
+    risk,
+    name: tc.name,
+    id: tc.id,
+  };
+  return template.titleTemplate.replace(/\{(\w+)\}/g, (_, key) =>
+    replacements[key] !== undefined ? replacements[key] : `{${key}}`,
+  );
 }
 
 interface StructuredStep {
@@ -191,6 +252,7 @@ interface JiraRow {
 export function buildAdoRows(
   config: RequestConfig,
   cases: GeneratedTestCase[],
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): AdoRow[] {
   const rows: AdoRow[] = [];
   let basePayload: unknown = {};
@@ -198,7 +260,7 @@ export function buildAdoRows(
 
   for (const tc of cases) {
     const payload = buildPayloadForCase(basePayload, tc);
-    const title = buildTestCaseTitle(config, tc);
+    const title = buildTestCaseTitle(config, tc, template);
     const steps = buildSteps(config, tc, payload);
     const tags = [
       "API",
@@ -236,6 +298,7 @@ export function buildAdoRows(
 export function buildJiraRows(
   config: RequestConfig,
   cases: GeneratedTestCase[],
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): JiraRow[] {
   let basePayload: unknown = {};
   try { basePayload = JSON.parse(config.bodyJson || "{}"); } catch { /* ignore */ }
@@ -267,7 +330,7 @@ export function buildJiraRows(
 
     return {
       "Test Case ID": tc.id,
-      Summary: buildTestCaseTitle(config, tc),
+      Summary: buildTestCaseTitle(config, tc, template),
       Description: tc.reason,
       Preconditions: buildPreconditions(config, tc),
       "Test Steps": stepsStr,
@@ -340,10 +403,11 @@ export function downloadCasesAsCsv(
   cases: GeneratedTestCase[],
   format: CaseExportFormat,
   filenameBase: string,
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): void {
   const rows: Record<string, unknown>[] =
-    format === "ado" ? (buildAdoRows(config, cases) as unknown as Record<string, unknown>[])
-      : (buildJiraRows(config, cases) as unknown as Record<string, unknown>[]);
+    format === "ado" ? (buildAdoRows(config, cases, template) as unknown as Record<string, unknown>[])
+      : (buildJiraRows(config, cases, template) as unknown as Record<string, unknown>[]);
   const csv = rowsToCsv(rows);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   triggerDownload(blob, `${filenameBase}-${format}.csv`);
@@ -354,10 +418,11 @@ export function downloadCasesAsXlsx(
   cases: GeneratedTestCase[],
   format: CaseExportFormat,
   filenameBase: string,
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): void {
   const rows: Record<string, unknown>[] =
-    format === "ado" ? (buildAdoRows(config, cases) as unknown as Record<string, unknown>[])
-      : (buildJiraRows(config, cases) as unknown as Record<string, unknown>[]);
+    format === "ado" ? (buildAdoRows(config, cases, template) as unknown as Record<string, unknown>[])
+      : (buildJiraRows(config, cases, template) as unknown as Record<string, unknown>[]);
   const sheetName = format === "ado" ? "Test Cases (ADO)" : "Test Cases";
   const meta = buildMetaSheet(config, cases.length);
   const bytes = rowsToXlsx(rows, sheetName, meta);
