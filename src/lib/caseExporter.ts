@@ -361,7 +361,7 @@ export function downloadCasesAsXlsx(
   const sheetName = format === "ado" ? "Test Cases (ADO)" : "Test Cases";
   const meta = buildMetaSheet(config, cases.length);
   const bytes = rowsToXlsx(rows, sheetName, meta);
-  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   triggerDownload(blob, `${filenameBase}-${format}.xlsx`);
 }
 
