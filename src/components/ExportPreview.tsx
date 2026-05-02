@@ -103,28 +103,13 @@ export function ExportPreview({
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileCode2 className="w-4 h-4 text-primary" />
-              Export preview
-            </CardTitle>
-            <CardDescription>
-              {enabled.length} of {cases.length} cases included. Drop the file into your Playwright project.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => downloadTextFile(specName, spec, "text/typescript")}>
-              <Download className="w-4 h-4 mr-2" /> {specName}
-            </Button>
-            <Button variant="outline" onClick={() => downloadTextFile(".env.example", envExample, "text/plain")}>
-              <Download className="w-4 h-4 mr-2" /> .env.example
-            </Button>
-            <Button variant="outline" onClick={downloadCases}>
-              <Download className="w-4 h-4 mr-2" /> test-cases.json
-            </Button>
-          </div>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <FileCode2 className="w-4 h-4 text-primary" />
+          Export preview
+        </CardTitle>
+        <CardDescription>
+          {enabled.length} of {cases.length} cases included. Expand any section below to configure or download.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Accordion
