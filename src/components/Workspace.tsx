@@ -151,6 +151,7 @@ export function Workspace({ onExit }: Props) {
     setFields([]);
     setCases([]);
     setRules([]);
+    setVariants([]);
     setStep(1);
     setReachable(1);
     toast.success("Project reset");
@@ -203,6 +204,7 @@ export function Workspace({ onExit }: Props) {
           {step === 3 && (
             <>
               <ConstraintEditor fields={fields} onChange={updateConstraints} />
+              <VariantsEditor variants={variants} fields={fields} onChange={setVariants} />
               <RuleEditor rules={rules} fields={fields} onChange={setRules} />
             </>
           )}
