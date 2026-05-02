@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Download, FileCode2, FileSpreadsheet, FileText, Terminal } from "lucide-react";
+import { Copy, Download, FileCode2, FileSpreadsheet, FileText, Terminal, Paperclip, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { copyToClipboard, downloadTextFile } from "@/lib/download";
 import { toast } from "sonner";
