@@ -4,12 +4,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Download, FileCode2, FileText, Terminal } from "lucide-react";
+import { Copy, Download, FileCode2, FileSpreadsheet, FileText, Terminal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { copyToClipboard, downloadTextFile } from "@/lib/download";
 import { toast } from "sonner";
 import type { GeneratedTestCase, RequestConfig } from "@/lib/types";
 import type { AttachmentMode } from "@/lib/specBuilder";
+import {
+  buildAdoRows,
+  buildJiraRows,
+  downloadCasesAsCsv,
+  downloadCasesAsXlsx,
+  type CaseExportFormat,
+} from "@/lib/caseExporter";
 
 interface Props {
   spec: string;
@@ -42,6 +49,14 @@ export function ExportPreview({
     ? `npx playwright test ${specName} --grep "@id-${selectedCase.id}"`
     : `npx playwright test ${specName}`;
 
+  const [exportFormat, setExportFormat] = useState<CaseExportFormat>("ado");
+  const previewRows = useMemo(() => {
+    if (enabled.length === 0) return [];
+    return exportFormat === "ado"
+      ? (buildAdoRows(config, enabled) as unknown as Record<string, unknown>[])
+      : (buildJiraRows(config, enabled) as unknown as Record<string, unknown>[]);
+  }, [config, enabled, exportFormat]);
+
   const copy = async (text: string, label: string) => {
     const ok = await copyToClipboard(text);
     toast[ok ? "success" : "error"](ok ? `${label} copied` : "Could not copy");
@@ -50,6 +65,23 @@ export function ExportPreview({
   const downloadCases = () => {
     const json = JSON.stringify({ generatedAt: new Date().toISOString(), config, cases: enabled }, null, 2);
     downloadTextFile("test-cases.json", json, "application/json");
+  };
+
+  const handleCsv = () => {
+    if (enabled.length === 0) {
+      toast.error("No test cases selected");
+      return;
+    }
+    downloadCasesAsCsv(config, enabled, exportFormat, slug);
+    toast.success(`${enabled.length} cases exported as CSV (${exportFormat.toUpperCase()})`);
+  };
+  const handleXlsx = () => {
+    if (enabled.length === 0) {
+      toast.error("No test cases selected");
+      return;
+    }
+    downloadCasesAsXlsx(config, enabled, exportFormat, slug);
+    toast.success(`${enabled.length} cases exported as XLSX (${exportFormat.toUpperCase()})`);
   };
 
   return (
@@ -142,6 +174,85 @@ export function ExportPreview({
               >
                 <Copy className="w-3 h-3" />
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Test management export */}
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Test management export (CSV / Excel)
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Importable into Azure DevOps Test Plans, Jira (Xray / Zephyr), TestRail, etc. Each
+                row follows a consistent naming convention with prerequisites, steps, payload, and expected result.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleCsv}>
+                <Download className="w-4 h-4 mr-2" /> CSV
+              </Button>
+              <Button size="sm" onClick={handleXlsx}>
+                <Download className="w-4 h-4 mr-2" /> Excel (.xlsx)
+              </Button>
+            </div>
+          </div>
+          <RadioGroup
+            value={exportFormat}
+            onValueChange={(v) => setExportFormat(v as CaseExportFormat)}
+            className="grid sm:grid-cols-2 gap-2"
+          >
+            <label
+              htmlFor="fmt-ado"
+              className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
+            >
+              <RadioGroupItem value="ado" id="fmt-ado" className="mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">Azure DevOps Test Plans</div>
+                <div className="text-xs text-muted-foreground">
+                  One row per step. Columns: Title, Test Step, Step Action, Step Expected, Priority, Tags, State.
+                </div>
+              </div>
+            </label>
+            <label
+              htmlFor="fmt-jira"
+              className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
+            >
+              <RadioGroupItem value="jira" id="fmt-jira" className="mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">Jira / Xray / Generic</div>
+                <div className="text-xs text-muted-foreground">
+                  One row per case. Columns: Summary, Description, Preconditions, Test Steps, Test Data, Expected Result, Priority, Labels.
+                </div>
+              </div>
+            </label>
+          </RadioGroup>
+
+          <div className="rounded-md border bg-background overflow-hidden">
+            <div className="px-3 py-2 text-xs text-muted-foreground border-b bg-muted/40">
+              Preview — first row of <code className="font-mono">{slug}-{exportFormat}.{`{csv,xlsx}`}</code>
+            </div>
+            <div className="max-h-64 overflow-auto">
+              {previewRows.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic p-3">No cases selected.</p>
+              ) : (
+                <table className="text-xs w-full">
+                  <tbody>
+                    {Object.entries(previewRows[0]).map(([k, v]) => (
+                      <tr key={k} className="border-b last:border-b-0 align-top">
+                        <td className="font-medium px-3 py-1.5 whitespace-nowrap text-muted-foreground w-40">
+                          {k}
+                        </td>
+                        <td className="px-3 py-1.5 font-mono whitespace-pre-wrap break-words">
+                          {String(v ?? "").slice(0, 600) || <span className="text-muted-foreground italic">—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
