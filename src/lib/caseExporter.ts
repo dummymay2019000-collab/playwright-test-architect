@@ -252,6 +252,7 @@ interface JiraRow {
 export function buildAdoRows(
   config: RequestConfig,
   cases: GeneratedTestCase[],
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): AdoRow[] {
   const rows: AdoRow[] = [];
   let basePayload: unknown = {};
@@ -259,7 +260,7 @@ export function buildAdoRows(
 
   for (const tc of cases) {
     const payload = buildPayloadForCase(basePayload, tc);
-    const title = buildTestCaseTitle(config, tc);
+    const title = buildTestCaseTitle(config, tc, template);
     const steps = buildSteps(config, tc, payload);
     const tags = [
       "API",
@@ -297,6 +298,7 @@ export function buildAdoRows(
 export function buildJiraRows(
   config: RequestConfig,
   cases: GeneratedTestCase[],
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): JiraRow[] {
   let basePayload: unknown = {};
   try { basePayload = JSON.parse(config.bodyJson || "{}"); } catch { /* ignore */ }
