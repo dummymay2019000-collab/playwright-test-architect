@@ -47,6 +47,9 @@ export interface RequestConfig {
   bodyJson: string;
   expectedSuccessStatus: number;
   expectedValidationStatus: number;
+  expectedAuthFailStatus: number;
+  expectedForbiddenStatus: number;
+  expectedNotFoundStatus: number;
   testDepth: TestDepth;
 }
 
@@ -128,7 +131,9 @@ export type ThenAction =
   | { type: "in"; values: string[] }
   | { type: "nin"; values: string[] }
   | { type: "between"; min?: number; max?: number }
-  | { type: "equals"; value: string };
+  | { type: "equals"; value: string }
+  | { type: "includeWith"; value: string }
+  | { type: "exclude" };
 
 export interface ConditionalRule {
   id: string;
@@ -139,10 +144,32 @@ export interface ConditionalRule {
   then: ThenAction;
 }
 
+// ---------- Variants (enum-driven payload shapes) ----------
+
+export interface VariantBranch {
+  /** The discriminator value (string form; coerced at gen-time based on field type). */
+  value: string;
+  /** Extra fields to add to the payload when discriminator equals this value. path -> JSON-ish string. */
+  addFields: { path: string; value: string }[];
+  /** Field paths to remove from the payload for this variant. */
+  removePaths: string[];
+  /** Optional human-readable note. */
+  note?: string;
+}
+
+export interface VariantSet {
+  id: string;
+  enabled: boolean;
+  /** Discriminator field path (e.g. "type", "paymentMethod"). */
+  discriminatorPath: string;
+  branches: VariantBranch[];
+}
+
 export interface ProjectState {
   config: RequestConfig;
   fields: FieldSchema[];
   cases: GeneratedTestCase[];
   rules?: ConditionalRule[];
+  variants?: VariantSet[];
   step: Step;
 }

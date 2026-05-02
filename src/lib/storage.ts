@@ -21,6 +21,9 @@ export const DEFAULT_CONFIG: RequestConfig = {
   bodyJson: DEFAULT_PAYLOAD,
   expectedSuccessStatus: 201,
   expectedValidationStatus: 400,
+  expectedAuthFailStatus: 401,
+  expectedForbiddenStatus: 403,
+  expectedNotFoundStatus: 404,
   testDepth: "standard",
 };
 
