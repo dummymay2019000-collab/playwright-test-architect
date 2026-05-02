@@ -178,6 +178,85 @@ export function ExportPreview({
           </div>
         </div>
 
+        {/* Test management export */}
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Test management export (CSV / Excel)
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Importable into Azure DevOps Test Plans, Jira (Xray / Zephyr), TestRail, etc. Each
+                row follows a consistent naming convention with prerequisites, steps, payload, and expected result.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleCsv}>
+                <Download className="w-4 h-4 mr-2" /> CSV
+              </Button>
+              <Button size="sm" onClick={handleXlsx}>
+                <Download className="w-4 h-4 mr-2" /> Excel (.xlsx)
+              </Button>
+            </div>
+          </div>
+          <RadioGroup
+            value={exportFormat}
+            onValueChange={(v) => setExportFormat(v as CaseExportFormat)}
+            className="grid sm:grid-cols-2 gap-2"
+          >
+            <label
+              htmlFor="fmt-ado"
+              className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
+            >
+              <RadioGroupItem value="ado" id="fmt-ado" className="mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">Azure DevOps Test Plans</div>
+                <div className="text-xs text-muted-foreground">
+                  One row per step. Columns: Title, Test Step, Step Action, Step Expected, Priority, Tags, State.
+                </div>
+              </div>
+            </label>
+            <label
+              htmlFor="fmt-jira"
+              className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
+            >
+              <RadioGroupItem value="jira" id="fmt-jira" className="mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">Jira / Xray / Generic</div>
+                <div className="text-xs text-muted-foreground">
+                  One row per case. Columns: Summary, Description, Preconditions, Test Steps, Test Data, Expected Result, Priority, Labels.
+                </div>
+              </div>
+            </label>
+          </RadioGroup>
+
+          <div className="rounded-md border bg-background overflow-hidden">
+            <div className="px-3 py-2 text-xs text-muted-foreground border-b bg-muted/40">
+              Preview — first row of <code className="font-mono">{slug}-{exportFormat}.{`{csv,xlsx}`}</code>
+            </div>
+            <div className="max-h-64 overflow-auto">
+              {previewRows.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic p-3">No cases selected.</p>
+              ) : (
+                <table className="text-xs w-full">
+                  <tbody>
+                    {Object.entries(previewRows[0]).map(([k, v]) => (
+                      <tr key={k} className="border-b last:border-b-0 align-top">
+                        <td className="font-medium px-3 py-1.5 whitespace-nowrap text-muted-foreground w-40">
+                          {k}
+                        </td>
+                        <td className="px-3 py-1.5 font-mono whitespace-pre-wrap break-words">
+                          {String(v ?? "").slice(0, 600) || <span className="text-muted-foreground italic">—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+
         <Tabs defaultValue="spec">
           <TabsList>
             <TabsTrigger value="spec"><FileCode2 className="w-3.5 h-3.5 mr-1.5" /> {specName}</TabsTrigger>
