@@ -245,6 +245,109 @@ export function ExportPreview({
             </label>
           </RadioGroup>
 
+          <Accordion type="single" collapsible className="rounded-md border bg-background">
+            <AccordionItem value="naming" className="border-0">
+              <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                <div className="flex flex-col items-start text-left">
+                  <span className="font-medium">Naming template</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Customize prefix, route slug style, and category / risk wording.
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-3 space-y-3">
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Title template</Label>
+                    <Input
+                      value={naming.titleTemplate}
+                      onChange={e => setNaming(n => ({ ...n, titleTemplate: e.target.value }))}
+                      className="font-mono text-xs"
+                      placeholder="{prefix}[{method} {route}] {category}: {name}"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Tokens: <code>{`{prefix}`}</code> <code>{`{method}`}</code> <code>{`{route}`}</code>{" "}
+                      <code>{`{category}`}</code> <code>{`{risk}`}</code> <code>{`{name}`}</code>{" "}
+                      <code>{`{id}`}</code>
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Prefix (e.g. project key)</Label>
+                    <Input
+                      value={naming.prefix}
+                      onChange={e => setNaming(n => ({ ...n, prefix: e.target.value }))}
+                      placeholder="API-"
+                      className="text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Route style</Label>
+                    <Select
+                      value={naming.routeStyle}
+                      onValueChange={(v) => setNaming(n => ({ ...n, routeStyle: v as RouteSlugStyle }))}
+                    >
+                      <SelectTrigger className="text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="verbatim">Verbatim — /users/{`{id}`}</SelectItem>
+                        <SelectItem value="noSlash">No leading slash — users/{`{id}`}</SelectItem>
+                        <SelectItem value="kebab">kebab-case — users-id</SelectItem>
+                        <SelectItem value="snake">snake_case — users_id</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Category labels</Label>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                    {Object.keys(DEFAULT_CATEGORY_LABELS).map(key => (
+                      <div key={key} className="space-y-0.5">
+                        <span className="text-[10px] uppercase text-muted-foreground">{key}</span>
+                        <Input
+                          value={naming.categoryLabels[key] ?? ""}
+                          onChange={e => updateCategoryLabel(key, e.target.value)}
+                          className="text-xs h-8"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Risk labels</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.keys(DEFAULT_RISK_LABELS).map(key => (
+                      <div key={key} className="space-y-0.5">
+                        <span className="text-[10px] uppercase text-muted-foreground">{key}</span>
+                        <Input
+                          value={naming.riskLabels[key] ?? ""}
+                          onChange={e => updateRiskLabel(key, e.target.value)}
+                          className="text-xs h-8"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <p className="text-xs text-muted-foreground">
+                    Example:{" "}
+                    <span className="font-mono text-foreground">
+                      {enabled[0]
+                        ? buildExampleTitle(config, enabled[0], naming)
+                        : "(no cases)"}
+                    </span>
+                  </p>
+                  <Button variant="ghost" size="sm" onClick={resetNaming}>
+                    Reset
+                  </Button>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
           <div className="rounded-md border bg-background overflow-hidden">
             <div className="px-3 py-2 text-xs text-muted-foreground border-b bg-muted/40">
               Preview — first row of <code className="font-mono">{slug}-{exportFormat}.{`{csv,xlsx}`}</code>
