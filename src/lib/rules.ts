@@ -170,6 +170,7 @@ function validValueForThen(t: ThenAction): unknown | undefined {
   switch (t.type) {
     case "in": return coerceScalar(t.values[0] ?? "");
     case "equals": return coerceScalar(t.value);
+    case "includeWith": return coerceScalar(t.value);
     case "between": {
       if (typeof t.min === "number" && typeof t.max === "number") return (t.min + t.max) / 2;
       if (typeof t.min === "number") return t.min;
@@ -178,6 +179,7 @@ function validValueForThen(t: ThenAction): unknown | undefined {
     }
     case "required": return "__valid_required__";
     case "forbidden":
+    case "exclude":
     case "nin":
       return undefined;
   }
@@ -188,6 +190,8 @@ function invalidValuesForThen(t: ThenAction): unknown[] {
     case "in": return [`__not_in_${t.values.join("_")}__`];
     case "nin": return t.values.length ? [coerceScalar(t.values[0])] : [];
     case "equals": return [`__not_${t.value}__`];
+    case "includeWith": return []; // shape-only; violation handled by removing field
+    case "exclude": return []; // shape-only
     case "between": {
       const out: unknown[] = [];
       if (typeof t.min === "number") out.push(t.min - 1);
@@ -266,6 +270,23 @@ export function generateRuleCases(
         expectedStatus: config.expectedValidationStatus,
         risk: "medium",
         reason: `When trigger holds, ${rule.thenPath} must be omitted.`,
+      });
+    }
+
+    // Exclude (shape-only): trigger active -> emit one positive case with field removed
+    if (rule.then.type === "exclude") {
+      const base = buildBaseTrigger();
+      out.push({
+        id: caseUid("rule"),
+        enabled: true,
+        name: `${ruleLabel} — ${rule.thenPath} excluded`,
+        category: "positive",
+        fieldPath: rule.thenPath,
+        override: base.override,
+        removePaths: [...base.removePaths, rule.thenPath],
+        expectedStatus: config.expectedSuccessStatus,
+        risk: "low",
+        reason: `When trigger holds, ${rule.thenPath} should be omitted from the payload.`,
       });
     }
 

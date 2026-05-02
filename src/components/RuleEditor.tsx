@@ -299,6 +299,8 @@ function ThenEditor({
       case "equals": next = { type: "equals", value: "" }; break;
       case "required": next = { type: "required" }; break;
       case "forbidden": next = { type: "forbidden" }; break;
+      case "includeWith": next = { type: "includeWith", value: "" }; break;
+      case "exclude": next = { type: "exclude" }; break;
     }
     onChange(thenPath, next);
   };
@@ -327,6 +329,8 @@ function ThenEditor({
             <SelectItem value="between">must be between</SelectItem>
             <SelectItem value="required">is required</SelectItem>
             <SelectItem value="forbidden">is forbidden</SelectItem>
+            <SelectItem value="includeWith">include with value (shape payload)</SelectItem>
+            <SelectItem value="exclude">exclude from payload (shape payload)</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -369,12 +373,12 @@ function ThenValue({ then, onChange }: { then: ThenAction; onChange: (t: ThenAct
       />
     );
   }
-  if (then.type === "equals") {
+  if (then.type === "equals" || then.type === "includeWith") {
     return (
       <Input
         value={then.value}
         onChange={e => onChange({ ...then, value: e.target.value })}
-        placeholder="expected value"
+        placeholder={then.type === "includeWith" ? "value to inject" : "expected value"}
         className="font-mono text-sm"
       />
     );

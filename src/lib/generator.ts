@@ -291,7 +291,7 @@ export function generateTestCases(config: RequestConfig, fields: FieldSchema[]):
       name: "Missing auth token",
       category: "auth",
       headersOverride: { Authorization: null },
-      expectedStatus: 401,
+      expectedStatus: config.expectedAuthFailStatus,
       risk: "high",
       reason: "Endpoint requires authentication; missing token must be rejected.",
     }));
@@ -299,7 +299,7 @@ export function generateTestCases(config: RequestConfig, fields: FieldSchema[]):
       name: "Invalid auth token",
       category: "auth",
       headersOverride: { Authorization: "Bearer invalid.token.value" },
-      expectedStatus: 401,
+      expectedStatus: config.expectedAuthFailStatus,
       risk: "high",
       reason: "Verifies the API rejects malformed/invalid bearer tokens.",
     }));

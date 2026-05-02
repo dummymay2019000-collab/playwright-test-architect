@@ -8,15 +8,17 @@ import { TestCaseTable } from "@/components/TestCaseTable";
 import { SummaryCards } from "@/components/SummaryCards";
 import { ExportPreview } from "@/components/ExportPreview";
 import { AiAssistPlaceholder } from "@/components/AiAssistPlaceholder";
+import { VariantsEditor } from "@/components/VariantsEditor";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Home } from "lucide-react";
 import { toast } from "sonner";
 import { analyzePayload, safeParseJson } from "@/lib/analyzer";
 import { generateTestCases } from "@/lib/generator";
 import { generateRuleCases } from "@/lib/rules";
+import { generateVariantCases } from "@/lib/variants";
 import { buildEnvExample, buildSpecFile, type AttachmentMode } from "@/lib/specBuilder";
 import { DEFAULT_CONFIG, clearProject, loadProject, saveProject } from "@/lib/storage";
-import type { ConditionalRule, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step } from "@/lib/types";
+import type { ConditionalRule, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step, VariantSet } from "@/lib/types";
 
 interface Props {
   onExit: () => void;
@@ -27,6 +29,7 @@ export function Workspace({ onExit }: Props) {
   const [fields, setFields] = useState<FieldSchema[]>([]);
   const [cases, setCases] = useState<GeneratedTestCase[]>([]);
   const [rules, setRules] = useState<ConditionalRule[]>([]);
+  const [variants, setVariants] = useState<VariantSet[]>([]);
   const [step, setStep] = useState<Step>(1);
   const [reachable, setReachable] = useState<Step>(1);
   const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>("separate");
@@ -35,10 +38,11 @@ export function Workspace({ onExit }: Props) {
   useEffect(() => {
     const saved = loadProject<ProjectState>();
     if (saved) {
-      setConfig(saved.config ?? DEFAULT_CONFIG);
+      setConfig({ ...DEFAULT_CONFIG, ...(saved.config ?? {}) });
       setFields(saved.fields ?? []);
       setCases(saved.cases ?? []);
       setRules(saved.rules ?? []);
+      setVariants(saved.variants ?? []);
       setStep(saved.step ?? 1);
       const r = Math.max(1, saved.step ?? 1) as Step;
       setReachable(r);
@@ -47,8 +51,8 @@ export function Workspace({ onExit }: Props) {
 
   // Persist
   useEffect(() => {
-    saveProject({ config, fields, cases, rules, step });
-  }, [config, fields, cases, rules, step]);
+    saveProject({ config, fields, cases, rules, variants, step });
+  }, [config, fields, cases, rules, variants, step]);
 
   const jsonError = useMemo(() => {
     if (!config.bodyJson.trim()) return null;
@@ -100,9 +104,15 @@ export function Workspace({ onExit }: Props) {
     }
     const generated = generateTestCases(config, fields);
     const ruleCases = generateRuleCases(config, fields, rules);
-    const all = [...generated, ...ruleCases];
+    const variantCases = generateVariantCases(config, fields, variants);
+    const all = [...generated, ...variantCases, ...ruleCases];
     setCases(all);
-    toast.success(`Generated ${all.length} test cases${ruleCases.length ? ` (incl. ${ruleCases.length} from rules)` : ""}`);
+    const extras: string[] = [];
+    if (variantCases.length) extras.push(`${variantCases.length} from variants`);
+    if (ruleCases.length) extras.push(`${ruleCases.length} from rules`);
+    toast.success(
+      `Generated ${all.length} test cases${extras.length ? ` (incl. ${extras.join(", ")})` : ""}`,
+    );
   };
 
   const spec = useMemo(() => buildSpecFile(config, cases, { attachmentMode }), [config, cases, attachmentMode]);
@@ -141,6 +151,7 @@ export function Workspace({ onExit }: Props) {
     setFields([]);
     setCases([]);
     setRules([]);
+    setVariants([]);
     setStep(1);
     setReachable(1);
     toast.success("Project reset");
@@ -193,6 +204,7 @@ export function Workspace({ onExit }: Props) {
           {step === 3 && (
             <>
               <ConstraintEditor fields={fields} onChange={updateConstraints} />
+              <VariantsEditor variants={variants} fields={fields} onChange={setVariants} />
               <RuleEditor rules={rules} fields={fields} onChange={setRules} />
             </>
           )}
