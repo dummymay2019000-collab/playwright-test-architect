@@ -273,6 +273,23 @@ export function generateRuleCases(
       });
     }
 
+    // Exclude (shape-only): trigger active -> emit one positive case with field removed
+    if (rule.then.type === "exclude") {
+      const base = buildBaseTrigger();
+      out.push({
+        id: caseUid("rule"),
+        enabled: true,
+        name: `${ruleLabel} — ${rule.thenPath} excluded`,
+        category: "positive",
+        fieldPath: rule.thenPath,
+        override: base.override,
+        removePaths: [...base.removePaths, rule.thenPath],
+        expectedStatus: config.expectedSuccessStatus,
+        risk: "low",
+        reason: `When trigger holds, ${rule.thenPath} should be omitted from the payload.`,
+      });
+    }
+
     // Required: trigger active + dependent missing -> validation error
     if (rule.then.type === "required") {
       const base = buildBaseTrigger();
