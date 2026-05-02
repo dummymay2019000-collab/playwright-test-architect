@@ -299,6 +299,8 @@ function ThenEditor({
       case "equals": next = { type: "equals", value: "" }; break;
       case "required": next = { type: "required" }; break;
       case "forbidden": next = { type: "forbidden" }; break;
+      case "includeWith": next = { type: "includeWith", value: "" }; break;
+      case "exclude": next = { type: "exclude" }; break;
     }
     onChange(thenPath, next);
   };
