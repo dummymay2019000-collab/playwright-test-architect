@@ -337,7 +337,7 @@ export function ExportPreview({
                     Example:{" "}
                     <span className="font-mono text-foreground">
                       {enabled[0]
-                        ? buildExampleTitle(config, enabled[0], naming)
+                        ? buildTestCaseTitle(config, enabled[0], naming)
                         : "(no cases)"}
                     </span>
                   </p>
