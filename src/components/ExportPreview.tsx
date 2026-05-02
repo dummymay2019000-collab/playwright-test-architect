@@ -57,12 +57,20 @@ export function ExportPreview({
     : `npx playwright test ${specName}`;
 
   const [exportFormat, setExportFormat] = useState<CaseExportFormat>("ado");
+  const [naming, setNaming] = useState<NamingTemplate>(DEFAULT_NAMING_TEMPLATE);
+
+  const updateCategoryLabel = (key: string, value: string) =>
+    setNaming(n => ({ ...n, categoryLabels: { ...n.categoryLabels, [key]: value } }));
+  const updateRiskLabel = (key: string, value: string) =>
+    setNaming(n => ({ ...n, riskLabels: { ...n.riskLabels, [key]: value } }));
+  const resetNaming = () => setNaming(DEFAULT_NAMING_TEMPLATE);
+
   const previewRows = useMemo(() => {
     if (enabled.length === 0) return [];
     return exportFormat === "ado"
-      ? (buildAdoRows(config, enabled) as unknown as Record<string, unknown>[])
-      : (buildJiraRows(config, enabled) as unknown as Record<string, unknown>[]);
-  }, [config, enabled, exportFormat]);
+      ? (buildAdoRows(config, enabled, naming) as unknown as Record<string, unknown>[])
+      : (buildJiraRows(config, enabled, naming) as unknown as Record<string, unknown>[]);
+  }, [config, enabled, exportFormat, naming]);
 
   const copy = async (text: string, label: string) => {
     const ok = await copyToClipboard(text);
@@ -79,7 +87,7 @@ export function ExportPreview({
       toast.error("No test cases selected");
       return;
     }
-    downloadCasesAsCsv(config, enabled, exportFormat, slug);
+    downloadCasesAsCsv(config, enabled, exportFormat, slug, naming);
     toast.success(`${enabled.length} cases exported as CSV (${exportFormat.toUpperCase()})`);
   };
   const handleXlsx = () => {
@@ -87,7 +95,7 @@ export function ExportPreview({
       toast.error("No test cases selected");
       return;
     }
-    downloadCasesAsXlsx(config, enabled, exportFormat, slug);
+    downloadCasesAsXlsx(config, enabled, exportFormat, slug, naming);
     toast.success(`${enabled.length} cases exported as XLSX (${exportFormat.toUpperCase()})`);
   };
 
