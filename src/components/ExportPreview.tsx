@@ -4,12 +4,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Download, FileCode2, FileText, Terminal } from "lucide-react";
+import { Copy, Download, FileCode2, FileSpreadsheet, FileText, Terminal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { copyToClipboard, downloadTextFile } from "@/lib/download";
 import { toast } from "sonner";
 import type { GeneratedTestCase, RequestConfig } from "@/lib/types";
 import type { AttachmentMode } from "@/lib/specBuilder";
+import {
+  buildAdoRows,
+  buildJiraRows,
+  downloadCasesAsCsv,
+  downloadCasesAsXlsx,
+  type CaseExportFormat,
+} from "@/lib/caseExporter";
 
 interface Props {
   spec: string;
@@ -42,6 +49,14 @@ export function ExportPreview({
     ? `npx playwright test ${specName} --grep "@id-${selectedCase.id}"`
     : `npx playwright test ${specName}`;
 
+  const [exportFormat, setExportFormat] = useState<CaseExportFormat>("ado");
+  const previewRows = useMemo(() => {
+    if (enabled.length === 0) return [];
+    return exportFormat === "ado"
+      ? (buildAdoRows(config, enabled) as unknown as Record<string, unknown>[])
+      : (buildJiraRows(config, enabled) as unknown as Record<string, unknown>[]);
+  }, [config, enabled, exportFormat]);
+
   const copy = async (text: string, label: string) => {
     const ok = await copyToClipboard(text);
     toast[ok ? "success" : "error"](ok ? `${label} copied` : "Could not copy");
@@ -50,6 +65,23 @@ export function ExportPreview({
   const downloadCases = () => {
     const json = JSON.stringify({ generatedAt: new Date().toISOString(), config, cases: enabled }, null, 2);
     downloadTextFile("test-cases.json", json, "application/json");
+  };
+
+  const handleCsv = () => {
+    if (enabled.length === 0) {
+      toast.error("No test cases selected");
+      return;
+    }
+    downloadCasesAsCsv(config, enabled, exportFormat, slug);
+    toast.success(`${enabled.length} cases exported as CSV (${exportFormat.toUpperCase()})`);
+  };
+  const handleXlsx = () => {
+    if (enabled.length === 0) {
+      toast.error("No test cases selected");
+      return;
+    }
+    downloadCasesAsXlsx(config, enabled, exportFormat, slug);
+    toast.success(`${enabled.length} cases exported as XLSX (${exportFormat.toUpperCase()})`);
   };
 
   return (
