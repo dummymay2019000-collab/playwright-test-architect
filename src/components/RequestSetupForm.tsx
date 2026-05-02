@@ -107,22 +107,52 @@ export function RequestSetupForm({ config, onChange, onReset }: Props) {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label>Expected success status</Label>
-              <Input
-                type="number"
-                value={config.expectedSuccessStatus}
-                onChange={e => update({ expectedSuccessStatus: Number(e.target.value) || 200 })}
-              />
-            </div>
-            <div>
-              <Label>Expected validation status</Label>
-              <Input
-                type="number"
-                value={config.expectedValidationStatus}
-                onChange={e => update({ expectedValidationStatus: Number(e.target.value) || 400 })}
-              />
+          <div>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Expected status codes</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Defaults applied to every generated case. You can still override any individual row before exporting.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div>
+                <Label className="text-xs">Success</Label>
+                <Input
+                  type="number"
+                  value={config.expectedSuccessStatus}
+                  onChange={e => update({ expectedSuccessStatus: Number(e.target.value) || 200 })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Validation</Label>
+                <Input
+                  type="number"
+                  value={config.expectedValidationStatus}
+                  onChange={e => update({ expectedValidationStatus: Number(e.target.value) || 400 })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Unauthorized</Label>
+                <Input
+                  type="number"
+                  value={config.expectedAuthFailStatus}
+                  onChange={e => update({ expectedAuthFailStatus: Number(e.target.value) || 401 })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Forbidden</Label>
+                <Input
+                  type="number"
+                  value={config.expectedForbiddenStatus}
+                  onChange={e => update({ expectedForbiddenStatus: Number(e.target.value) || 403 })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Not found</Label>
+                <Input
+                  type="number"
+                  value={config.expectedNotFoundStatus}
+                  onChange={e => update({ expectedNotFoundStatus: Number(e.target.value) || 404 })}
+                />
+              </div>
             </div>
           </div>
         </CardContent>
