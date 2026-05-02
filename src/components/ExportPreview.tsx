@@ -15,8 +15,15 @@ import {
   buildJiraRows,
   downloadCasesAsCsv,
   downloadCasesAsXlsx,
+  DEFAULT_NAMING_TEMPLATE,
+  DEFAULT_CATEGORY_LABELS,
+  DEFAULT_RISK_LABELS,
   type CaseExportFormat,
+  type NamingTemplate,
+  type RouteSlugStyle,
 } from "@/lib/caseExporter";
+import { Input } from "@/components/ui/input";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface Props {
   spec: string;
