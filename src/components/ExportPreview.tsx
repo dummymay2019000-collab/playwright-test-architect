@@ -13,6 +13,7 @@ import type { AttachmentMode } from "@/lib/specBuilder";
 import {
   buildAdoRows,
   buildJiraRows,
+  buildTestCaseTitle,
   downloadCasesAsCsv,
   downloadCasesAsXlsx,
   DEFAULT_NAMING_TEMPLATE,
