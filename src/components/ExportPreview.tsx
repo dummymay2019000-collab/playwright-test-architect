@@ -126,276 +126,371 @@ export function ExportPreview({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Export options */}
-        <div className="grid gap-6 md:grid-cols-2 rounded-lg border border-border bg-muted/30 p-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Report attachments</Label>
-            <p className="text-xs text-muted-foreground">
-              How request &amp; response payloads are attached to the Playwright HTML report.
-            </p>
-            <RadioGroup
-              value={attachmentMode}
-              onValueChange={(v) => onAttachmentModeChange(v as AttachmentMode)}
-              className="mt-2 space-y-1.5"
-            >
-              <div className="flex items-start gap-2">
-                <RadioGroupItem value="separate" id="att-separate" className="mt-0.5" />
-                <Label htmlFor="att-separate" className="font-normal cursor-pointer">
-                  Separate <span className="text-muted-foreground">— two attachments: request.json and response.json</span>
-                </Label>
-              </div>
-              <div className="flex items-start gap-2">
-                <RadioGroupItem value="combined" id="att-combined" className="mt-0.5" />
-                <Label htmlFor="att-combined" className="font-normal cursor-pointer">
-                  Combined <span className="text-muted-foreground">— single payloads.json with {`{ request, response }`}</span>
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1.5">
-              <Terminal className="w-3.5 h-3.5" /> Run a specific test case
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Each case is tagged <code className="px-1 py-0.5 rounded bg-muted text-foreground">@id-&lt;caseId&gt;</code>. Pick one to get the exact command.
-            </p>
-            <Select
-              value={selectedCase?.id ?? ""}
-              onValueChange={setSelectedCaseId}
-              disabled={enabled.length === 0}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select a test case" />
-              </SelectTrigger>
-              <SelectContent>
-                {enabled.map(c => (
-                  <SelectItem key={c.id} value={c.id}>
-                    [{c.category}] {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="relative mt-2">
-              <pre className="code-surface px-3 py-2 pr-12 text-xs font-mono whitespace-pre-wrap break-all">
-                {grepCommand}
-              </pre>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="absolute top-1.5 right-1.5 h-7"
-                onClick={() => copy(grepCommand, "Command")}
-                disabled={!selectedCase}
-              >
-                <Copy className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Test management export */}
-        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div>
-              <Label className="text-sm font-medium flex items-center gap-1.5">
-                <FileSpreadsheet className="w-3.5 h-3.5" /> Test management export (CSV / Excel)
-              </Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Importable into Azure DevOps Test Plans, Jira (Xray / Zephyr), TestRail, etc. Each
-                row follows a consistent naming convention with prerequisites, steps, payload, and expected result.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleCsv}>
-                <Download className="w-4 h-4 mr-2" /> CSV
-              </Button>
-              <Button size="sm" onClick={handleXlsx}>
-                <Download className="w-4 h-4 mr-2" /> Excel (.xlsx)
-              </Button>
-            </div>
-          </div>
-          <RadioGroup
-            value={exportFormat}
-            onValueChange={(v) => setExportFormat(v as CaseExportFormat)}
-            className="grid sm:grid-cols-2 gap-2"
+      <CardContent>
+        <Accordion
+          type="multiple"
+          defaultValue={["downloads", "tm-export"]}
+          className="space-y-3"
+        >
+          {/* 1. Downloads */}
+          <AccordionItem
+            value="downloads"
+            className="rounded-lg border border-border bg-muted/30 px-4"
           >
-            <label
-              htmlFor="fmt-ado"
-              className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
-            >
-              <RadioGroupItem value="ado" id="fmt-ado" className="mt-0.5" />
-              <div className="space-y-0.5">
-                <div className="text-sm font-medium">Azure DevOps Test Plans</div>
-                <div className="text-xs text-muted-foreground">
-                  One row per step. Columns: Title, Test Step, Step Action, Step Expected, Priority, Tags, State.
-                </div>
+            <AccordionTrigger className="hover:no-underline py-3">
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  <Download className="w-3.5 h-3.5" /> Downloads
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Spec file, env template, and raw test-cases JSON.
+                </span>
               </div>
-            </label>
-            <label
-              htmlFor="fmt-jira"
-              className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
-            >
-              <RadioGroupItem value="jira" id="fmt-jira" className="mt-0.5" />
-              <div className="space-y-0.5">
-                <div className="text-sm font-medium">Jira / Xray / Generic</div>
-                <div className="text-xs text-muted-foreground">
-                  One row per case. Columns: Summary, Description, Preconditions, Test Steps, Test Data, Expected Result, Priority, Labels.
-                </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => downloadTextFile(specName, spec, "text/typescript")}>
+                  <Download className="w-4 h-4 mr-2" /> {specName}
+                </Button>
+                <Button variant="outline" onClick={() => downloadTextFile(".env.example", envExample, "text/plain")}>
+                  <Download className="w-4 h-4 mr-2" /> .env.example
+                </Button>
+                <Button variant="outline" onClick={downloadCases}>
+                  <Download className="w-4 h-4 mr-2" /> test-cases.json
+                </Button>
               </div>
-            </label>
-          </RadioGroup>
+            </AccordionContent>
+          </AccordionItem>
 
-          <Accordion type="single" collapsible className="rounded-md border bg-background">
-            <AccordionItem value="naming" className="border-0">
-              <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
-                <div className="flex flex-col items-start text-left">
-                  <span className="font-medium">Naming template</span>
-                  <span className="text-xs text-muted-foreground font-normal">
-                    Customize prefix, route slug style, and category / risk wording.
+          {/* 2. Playwright report options */}
+          <AccordionItem
+            value="report"
+            className="rounded-lg border border-border bg-muted/30 px-4"
+          >
+            <AccordionTrigger className="hover:no-underline py-3">
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  <Paperclip className="w-3.5 h-3.5" /> Playwright report attachments
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Currently:{" "}
+                  <span className="text-foreground font-medium">
+                    {attachmentMode === "separate" ? "Separate (request + response)" : "Combined (payloads.json)"}
                   </span>
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <p className="text-xs text-muted-foreground mb-2">
+                How request &amp; response payloads are attached to the Playwright HTML report.
+              </p>
+              <RadioGroup
+                value={attachmentMode}
+                onValueChange={(v) => onAttachmentModeChange(v as AttachmentMode)}
+                className="space-y-1.5"
+              >
+                <div className="flex items-start gap-2">
+                  <RadioGroupItem value="separate" id="att-separate" className="mt-0.5" />
+                  <Label htmlFor="att-separate" className="font-normal cursor-pointer">
+                    Separate <span className="text-muted-foreground">— two attachments: request.json and response.json</span>
+                  </Label>
                 </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-3 space-y-3">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Title template</Label>
-                    <Input
-                      value={naming.titleTemplate}
-                      onChange={e => setNaming(n => ({ ...n, titleTemplate: e.target.value }))}
-                      className="font-mono text-xs"
-                      placeholder="{prefix}[{method} {route}] {category}: {name}"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Tokens: <code>{`{prefix}`}</code> <code>{`{method}`}</code> <code>{`{route}`}</code>{" "}
-                      <code>{`{category}`}</code> <code>{`{risk}`}</code> <code>{`{name}`}</code>{" "}
-                      <code>{`{id}`}</code>
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Prefix (e.g. project key)</Label>
-                    <Input
-                      value={naming.prefix}
-                      onChange={e => setNaming(n => ({ ...n, prefix: e.target.value }))}
-                      placeholder="API-"
-                      className="text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Route style</Label>
-                    <Select
-                      value={naming.routeStyle}
-                      onValueChange={(v) => setNaming(n => ({ ...n, routeStyle: v as RouteSlugStyle }))}
-                    >
-                      <SelectTrigger className="text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="verbatim">Verbatim — /users/{`{id}`}</SelectItem>
-                        <SelectItem value="noSlash">No leading slash — users/{`{id}`}</SelectItem>
-                        <SelectItem value="kebab">kebab-case — users-id</SelectItem>
-                        <SelectItem value="snake">snake_case — users_id</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="flex items-start gap-2">
+                  <RadioGroupItem value="combined" id="att-combined" className="mt-0.5" />
+                  <Label htmlFor="att-combined" className="font-normal cursor-pointer">
+                    Combined <span className="text-muted-foreground">— single payloads.json with {`{ request, response }`}</span>
+                  </Label>
                 </div>
+              </RadioGroup>
+            </AccordionContent>
+          </AccordionItem>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Category labels</Label>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                    {Object.keys(DEFAULT_CATEGORY_LABELS).map(key => (
-                      <div key={key} className="space-y-0.5">
-                        <span className="text-[10px] uppercase text-muted-foreground">{key}</span>
-                        <Input
-                          value={naming.categoryLabels[key] ?? ""}
-                          onChange={e => updateCategoryLabel(key, e.target.value)}
-                          className="text-xs h-8"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          {/* 3. Run a specific case */}
+          <AccordionItem
+            value="run-one"
+            className="rounded-lg border border-border bg-muted/30 px-4"
+          >
+            <AccordionTrigger className="hover:no-underline py-3">
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  <Terminal className="w-3.5 h-3.5" /> Run a specific test case
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Get the exact <code className="font-mono">--grep</code> command for any case.
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Each case is tagged <code className="px-1 py-0.5 rounded bg-muted text-foreground">@id-&lt;caseId&gt;</code>.
+              </p>
+              <Select
+                value={selectedCase?.id ?? ""}
+                onValueChange={setSelectedCaseId}
+                disabled={enabled.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a test case" />
+                </SelectTrigger>
+                <SelectContent>
+                  {enabled.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      [{c.category}] {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative">
+                <pre className="code-surface px-3 py-2 pr-12 text-xs font-mono whitespace-pre-wrap break-all">
+                  {grepCommand}
+                </pre>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="absolute top-1.5 right-1.5 h-7"
+                  onClick={() => copy(grepCommand, "Command")}
+                  disabled={!selectedCase}
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Risk labels</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {Object.keys(DEFAULT_RISK_LABELS).map(key => (
-                      <div key={key} className="space-y-0.5">
-                        <span className="text-[10px] uppercase text-muted-foreground">{key}</span>
-                        <Input
-                          value={naming.riskLabels[key] ?? ""}
-                          onChange={e => updateRiskLabel(key, e.target.value)}
-                          className="text-xs h-8"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <p className="text-xs text-muted-foreground">
-                    Example:{" "}
-                    <span className="font-mono text-foreground">
-                      {enabled[0]
-                        ? buildTestCaseTitle(config, enabled[0], naming)
-                        : "(no cases)"}
-                    </span>
-                  </p>
-                  <Button variant="ghost" size="sm" onClick={resetNaming}>
-                    Reset
+          {/* 4. Test management export */}
+          <AccordionItem
+            value="tm-export"
+            className="rounded-lg border border-border bg-muted/30 px-4"
+          >
+            <AccordionTrigger className="hover:no-underline py-3">
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> Test management export (CSV / Excel)
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Format:{" "}
+                  <span className="text-foreground font-medium">
+                    {exportFormat === "ado" ? "Azure DevOps" : "Jira / Xray / Generic"}
+                  </span>
+                  {" · "}
+                  {enabled.length} cases
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-3">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <p className="text-xs text-muted-foreground">
+                  Importable into Azure DevOps Test Plans, Jira (Xray / Zephyr), TestRail, etc.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCsv}>
+                    <Download className="w-4 h-4 mr-2" /> CSV
+                  </Button>
+                  <Button size="sm" onClick={handleXlsx}>
+                    <Download className="w-4 h-4 mr-2" /> Excel (.xlsx)
                   </Button>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+              </div>
 
-          <div className="rounded-md border bg-background overflow-hidden">
-            <div className="px-3 py-2 text-xs text-muted-foreground border-b bg-muted/40">
-              Preview — first row of <code className="font-mono">{slug}-{exportFormat}.{`{csv,xlsx}`}</code>
-            </div>
-            <div className="max-h-64 overflow-auto">
-              {previewRows.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic p-3">No cases selected.</p>
-              ) : (
-                <table className="text-xs w-full">
-                  <tbody>
-                    {Object.entries(previewRows[0]).map(([k, v]) => (
-                      <tr key={k} className="border-b last:border-b-0 align-top">
-                        <td className="font-medium px-3 py-1.5 whitespace-nowrap text-muted-foreground w-40">
-                          {k}
-                        </td>
-                        <td className="px-3 py-1.5 font-mono whitespace-pre-wrap break-words">
-                          {String(v ?? "").slice(0, 600) || <span className="text-muted-foreground italic">—</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
+              <RadioGroup
+                value={exportFormat}
+                onValueChange={(v) => setExportFormat(v as CaseExportFormat)}
+                className="grid sm:grid-cols-2 gap-2"
+              >
+                <label
+                  htmlFor="fmt-ado"
+                  className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
+                >
+                  <RadioGroupItem value="ado" id="fmt-ado" className="mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Azure DevOps Test Plans</div>
+                    <div className="text-xs text-muted-foreground">
+                      One row per step. Columns: Title, Test Step, Step Action, Step Expected, Priority, Tags, State.
+                    </div>
+                  </div>
+                </label>
+                <label
+                  htmlFor="fmt-jira"
+                  className="flex items-start gap-2 rounded-md border bg-background p-3 cursor-pointer hover:border-primary/50"
+                >
+                  <RadioGroupItem value="jira" id="fmt-jira" className="mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Jira / Xray / Generic</div>
+                    <div className="text-xs text-muted-foreground">
+                      One row per case. Columns: Summary, Description, Preconditions, Test Steps, Test Data, Expected Result, Priority, Labels.
+                    </div>
+                  </div>
+                </label>
+              </RadioGroup>
 
-        <Tabs defaultValue="spec">
-          <TabsList>
-            <TabsTrigger value="spec"><FileCode2 className="w-3.5 h-3.5 mr-1.5" /> {specName}</TabsTrigger>
-            <TabsTrigger value="env"><FileText className="w-3.5 h-3.5 mr-1.5" /> .env.example</TabsTrigger>
-            <TabsTrigger value="cases"><FileText className="w-3.5 h-3.5 mr-1.5" /> test-cases.json</TabsTrigger>
-          </TabsList>
+              {/* Naming template — nested accordion */}
+              <Accordion type="single" collapsible className="rounded-md border bg-background">
+                <AccordionItem value="naming" className="border-0">
+                  <AccordionTrigger className="px-3 py-2 text-sm hover:no-underline">
+                    <div className="flex flex-col items-start text-left">
+                      <span className="font-medium flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5" /> Naming template
+                      </span>
+                      <span className="text-xs text-muted-foreground font-normal font-mono truncate max-w-[280px] sm:max-w-md">
+                        {enabled[0]
+                          ? buildTestCaseTitle(config, enabled[0], naming)
+                          : naming.titleTemplate}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3 space-y-3">
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Title template</Label>
+                        <Input
+                          value={naming.titleTemplate}
+                          onChange={e => setNaming(n => ({ ...n, titleTemplate: e.target.value }))}
+                          className="font-mono text-xs"
+                          placeholder="{prefix}[{method} {route}] {category}: {name}"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                          Tokens: <code>{`{prefix}`}</code> <code>{`{method}`}</code> <code>{`{route}`}</code>{" "}
+                          <code>{`{category}`}</code> <code>{`{risk}`}</code> <code>{`{name}`}</code>{" "}
+                          <code>{`{id}`}</code>
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Prefix (e.g. project key)</Label>
+                        <Input
+                          value={naming.prefix}
+                          onChange={e => setNaming(n => ({ ...n, prefix: e.target.value }))}
+                          placeholder="API-"
+                          className="text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Route style</Label>
+                        <Select
+                          value={naming.routeStyle}
+                          onValueChange={(v) => setNaming(n => ({ ...n, routeStyle: v as RouteSlugStyle }))}
+                        >
+                          <SelectTrigger className="text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="verbatim">Verbatim — /users/{`{id}`}</SelectItem>
+                            <SelectItem value="noSlash">No leading slash — users/{`{id}`}</SelectItem>
+                            <SelectItem value="kebab">kebab-case — users-id</SelectItem>
+                            <SelectItem value="snake">snake_case — users_id</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-          <TabsContent value="spec">
-            <CodePreview content={spec} onCopy={() => copy(spec, "Spec")} />
-          </TabsContent>
-          <TabsContent value="env">
-            <CodePreview content={envExample} onCopy={() => copy(envExample, ".env.example")} />
-          </TabsContent>
-          <TabsContent value="cases">
-            <CodePreview
-              content={JSON.stringify({ config, cases: enabled }, null, 2)}
-              onCopy={() => copy(JSON.stringify({ config, cases: enabled }, null, 2), "Cases JSON")}
-            />
-          </TabsContent>
-        </Tabs>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Category labels</Label>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                        {Object.keys(DEFAULT_CATEGORY_LABELS).map(key => (
+                          <div key={key} className="space-y-0.5">
+                            <span className="text-[10px] uppercase text-muted-foreground">{key}</span>
+                            <Input
+                              value={naming.categoryLabels[key] ?? ""}
+                              onChange={e => updateCategoryLabel(key, e.target.value)}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Risk labels</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {Object.keys(DEFAULT_RISK_LABELS).map(key => (
+                          <div key={key} className="space-y-0.5">
+                            <span className="text-[10px] uppercase text-muted-foreground">{key}</span>
+                            <Input
+                              value={naming.riskLabels[key] ?? ""}
+                              onChange={e => updateRiskLabel(key, e.target.value)}
+                              className="text-xs h-8"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end pt-1">
+                      <Button variant="ghost" size="sm" onClick={resetNaming}>
+                        Reset to defaults
+                      </Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Row preview */}
+              <div className="rounded-md border bg-background overflow-hidden">
+                <div className="px-3 py-2 text-xs text-muted-foreground border-b bg-muted/40">
+                  Preview — first row of <code className="font-mono">{slug}-{exportFormat}.{`{csv,xlsx}`}</code>
+                </div>
+                <div className="max-h-64 overflow-auto">
+                  {previewRows.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic p-3">No cases selected.</p>
+                  ) : (
+                    <table className="text-xs w-full">
+                      <tbody>
+                        {Object.entries(previewRows[0]).map(([k, v]) => (
+                          <tr key={k} className="border-b last:border-b-0 align-top">
+                            <td className="font-medium px-3 py-1.5 whitespace-nowrap text-muted-foreground w-40">
+                              {k}
+                            </td>
+                            <td className="px-3 py-1.5 font-mono whitespace-pre-wrap break-words">
+                              {String(v ?? "").slice(0, 600) || <span className="text-muted-foreground italic">—</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* 5. File previews */}
+          <AccordionItem
+            value="previews"
+            className="rounded-lg border border-border bg-muted/30 px-4"
+          >
+            <AccordionTrigger className="hover:no-underline py-3">
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  <FileCode2 className="w-3.5 h-3.5" /> File previews
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  Inspect the generated spec, .env.example, and test-cases.json before downloading.
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-4">
+              <Tabs defaultValue="spec">
+                <TabsList>
+                  <TabsTrigger value="spec"><FileCode2 className="w-3.5 h-3.5 mr-1.5" /> {specName}</TabsTrigger>
+                  <TabsTrigger value="env"><FileText className="w-3.5 h-3.5 mr-1.5" /> .env.example</TabsTrigger>
+                  <TabsTrigger value="cases"><FileText className="w-3.5 h-3.5 mr-1.5" /> test-cases.json</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="spec">
+                  <CodePreview content={spec} onCopy={() => copy(spec, "Spec")} />
+                </TabsContent>
+                <TabsContent value="env">
+                  <CodePreview content={envExample} onCopy={() => copy(envExample, ".env.example")} />
+                </TabsContent>
+                <TabsContent value="cases">
+                  <CodePreview
+                    content={JSON.stringify({ config, cases: enabled }, null, 2)}
+                    onCopy={() => copy(JSON.stringify({ config, cases: enabled }, null, 2), "Cases JSON")}
+                  />
+                </TabsContent>
+              </Tabs>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </CardContent>
     </Card>
   );
