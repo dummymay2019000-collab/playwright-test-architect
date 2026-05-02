@@ -403,10 +403,11 @@ export function downloadCasesAsCsv(
   cases: GeneratedTestCase[],
   format: CaseExportFormat,
   filenameBase: string,
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): void {
   const rows: Record<string, unknown>[] =
-    format === "ado" ? (buildAdoRows(config, cases) as unknown as Record<string, unknown>[])
-      : (buildJiraRows(config, cases) as unknown as Record<string, unknown>[]);
+    format === "ado" ? (buildAdoRows(config, cases, template) as unknown as Record<string, unknown>[])
+      : (buildJiraRows(config, cases, template) as unknown as Record<string, unknown>[]);
   const csv = rowsToCsv(rows);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   triggerDownload(blob, `${filenameBase}-${format}.csv`);
@@ -417,10 +418,11 @@ export function downloadCasesAsXlsx(
   cases: GeneratedTestCase[],
   format: CaseExportFormat,
   filenameBase: string,
+  template: NamingTemplate = DEFAULT_NAMING_TEMPLATE,
 ): void {
   const rows: Record<string, unknown>[] =
-    format === "ado" ? (buildAdoRows(config, cases) as unknown as Record<string, unknown>[])
-      : (buildJiraRows(config, cases) as unknown as Record<string, unknown>[]);
+    format === "ado" ? (buildAdoRows(config, cases, template) as unknown as Record<string, unknown>[])
+      : (buildJiraRows(config, cases, template) as unknown as Record<string, unknown>[]);
   const sheetName = format === "ado" ? "Test Cases (ADO)" : "Test Cases";
   const meta = buildMetaSheet(config, cases.length);
   const bytes = rowsToXlsx(rows, sheetName, meta);
