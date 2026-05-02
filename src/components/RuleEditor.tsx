@@ -329,6 +329,8 @@ function ThenEditor({
             <SelectItem value="between">must be between</SelectItem>
             <SelectItem value="required">is required</SelectItem>
             <SelectItem value="forbidden">is forbidden</SelectItem>
+            <SelectItem value="includeWith">include with value (shape payload)</SelectItem>
+            <SelectItem value="exclude">exclude from payload (shape payload)</SelectItem>
           </SelectContent>
         </Select>
       </div>
