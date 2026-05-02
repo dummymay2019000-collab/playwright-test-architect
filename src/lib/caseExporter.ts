@@ -330,7 +330,7 @@ export function buildJiraRows(
 
     return {
       "Test Case ID": tc.id,
-      Summary: buildTestCaseTitle(config, tc),
+      Summary: buildTestCaseTitle(config, tc, template),
       Description: tc.reason,
       Preconditions: buildPreconditions(config, tc),
       "Test Steps": stepsStr,
