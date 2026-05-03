@@ -9,8 +9,10 @@ import { SummaryCards } from "@/components/SummaryCards";
 import { ExportPreview } from "@/components/ExportPreview";
 import { AiAssistPlaceholder } from "@/components/AiAssistPlaceholder";
 import { VariantsEditor } from "@/components/VariantsEditor";
+import { EnvironmentManager } from "@/components/EnvironmentManager";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Home } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Home } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { analyzePayload, safeParseJson } from "@/lib/analyzer";
 import { generateTestCases } from "@/lib/generator";
@@ -18,7 +20,9 @@ import { generateRuleCases } from "@/lib/rules";
 import { generateVariantCases } from "@/lib/variants";
 import { buildEnvExample, buildSpecFile, type AttachmentMode } from "@/lib/specBuilder";
 import { DEFAULT_CONFIG, clearProject, loadProject, saveProject } from "@/lib/storage";
-import type { ConditionalRule, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step, VariantSet } from "@/lib/types";
+import { buildProjectExport, parseProjectExport, suggestFilename } from "@/lib/projectBundle";
+import { downloadTextFile } from "@/lib/download";
+import type { ConditionalRule, Environment, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step, VariantSet } from "@/lib/types";
 
 interface Props {
   onExit: () => void;
@@ -30,6 +34,8 @@ export function Workspace({ onExit }: Props) {
   const [cases, setCases] = useState<GeneratedTestCase[]>([]);
   const [rules, setRules] = useState<ConditionalRule[]>([]);
   const [variants, setVariants] = useState<VariantSet[]>([]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [activeEnvId, setActiveEnvId] = useState<string | null>(null);
   const [step, setStep] = useState<Step>(1);
   const [reachable, setReachable] = useState<Step>(1);
   const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>("separate");
@@ -43,6 +49,8 @@ export function Workspace({ onExit }: Props) {
       setCases(saved.cases ?? []);
       setRules(saved.rules ?? []);
       setVariants(saved.variants ?? []);
+      setEnvironments(saved.environments ?? []);
+      setActiveEnvId(saved.activeEnvId ?? null);
       setStep(saved.step ?? 1);
       const r = Math.max(1, saved.step ?? 1) as Step;
       setReachable(r);
@@ -51,8 +59,45 @@ export function Workspace({ onExit }: Props) {
 
   // Persist
   useEffect(() => {
-    saveProject({ config, fields, cases, rules, variants, step });
-  }, [config, fields, cases, rules, variants, step]);
+    saveProject({ config, fields, cases, rules, variants, environments, activeEnvId, step });
+  }, [config, fields, cases, rules, variants, environments, activeEnvId, step]);
+
+  const handleApplyEnv = (env: Environment) => {
+    setConfig({
+      ...config,
+      baseUrl: env.baseUrl,
+      endpoint: env.endpoint,
+      headers: env.headers.map(h => ({ ...h })),
+      auth: { ...env.auth },
+      bodyJson: env.bodyJson || config.bodyJson,
+    });
+    setActiveEnvId(env.id);
+  };
+
+  const handleExportProject = () => {
+    const bundle = buildProjectExport({ config, fields, cases, rules, variants, environments, activeEnvId });
+    downloadTextFile(suggestFilename(config.apiName), JSON.stringify(bundle, null, 2), "application/json");
+    toast.success("Configuration exported");
+  };
+
+  const handleImportProject = async (file: File) => {
+    const text = await file.text();
+    const r = parseProjectExport(text);
+    if (!r.ok || !r.data) {
+      toast.error("Import failed", { description: r.error });
+      return;
+    }
+    const d = r.data;
+    setConfig({ ...DEFAULT_CONFIG, ...d.config });
+    setFields(d.fields ?? []);
+    setCases(d.cases ?? []);
+    setRules(d.rules ?? []);
+    setVariants(d.variants ?? []);
+    setEnvironments(d.environments ?? []);
+    setActiveEnvId(d.activeEnvId ?? null);
+    setReachable(5);
+    toast.success("Configuration imported");
+  };
 
   const jsonError = useMemo(() => {
     if (!config.bodyJson.trim()) return null;
@@ -152,6 +197,8 @@ export function Workspace({ onExit }: Props) {
     setCases([]);
     setRules([]);
     setVariants([]);
+    setEnvironments([]);
+    setActiveEnvId(null);
     setStep(1);
     setReachable(1);
     toast.success("Project reset");
@@ -173,6 +220,9 @@ export function Workspace({ onExit }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/guide"><BookOpen className="w-4 h-4 mr-1.5" /> Guide</Link>
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => goTo(Math.max(1, step - 1) as Step)} disabled={step === 1}>
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>
@@ -186,7 +236,19 @@ export function Workspace({ onExit }: Props) {
 
         <div className="px-4 md:px-8 py-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
           {step === 1 && (
-            <RequestSetupForm config={config} onChange={setConfig} onReset={handleReset} />
+            <>
+              <EnvironmentManager
+                config={config}
+                environments={environments}
+                activeEnvId={activeEnvId}
+                onChangeEnvironments={setEnvironments}
+                onActivate={setActiveEnvId}
+                onApply={handleApplyEnv}
+                onExportProject={handleExportProject}
+                onImportProject={handleImportProject}
+              />
+              <RequestSetupForm config={config} onChange={setConfig} onReset={handleReset} />
+            </>
           )}
 
           {step === 2 && (
