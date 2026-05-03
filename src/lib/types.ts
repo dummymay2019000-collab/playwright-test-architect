@@ -165,11 +165,41 @@ export interface VariantSet {
   branches: VariantBranch[];
 }
 
+// ---------- Environments ----------
+
+export interface Environment {
+  id: string;
+  name: string;
+  baseUrl: string;
+  endpoint: string;
+  headers: HeaderRow[];
+  auth: RequestConfig["auth"];
+  /** JSON string — full payload override for this environment. */
+  bodyJson: string;
+  note?: string;
+}
+
 export interface ProjectState {
   config: RequestConfig;
   fields: FieldSchema[];
   cases: GeneratedTestCase[];
   rules?: ConditionalRule[];
   variants?: VariantSet[];
+  environments?: Environment[];
+  activeEnvId?: string | null;
   step: Step;
+}
+
+/** Versioned, importable/exportable project bundle. */
+export interface ProjectExportV1 {
+  schema: "api-testforge.project";
+  version: 1;
+  exportedAt: string;
+  config: RequestConfig;
+  fields: FieldSchema[];
+  cases: GeneratedTestCase[];
+  rules: ConditionalRule[];
+  variants: VariantSet[];
+  environments: Environment[];
+  activeEnvId: string | null;
 }
