@@ -197,6 +197,8 @@ export function Workspace({ onExit }: Props) {
     setCases([]);
     setRules([]);
     setVariants([]);
+    setEnvironments([]);
+    setActiveEnvId(null);
     setStep(1);
     setReachable(1);
     toast.success("Project reset");
