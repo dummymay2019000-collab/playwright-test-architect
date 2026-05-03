@@ -9,8 +9,10 @@ import { SummaryCards } from "@/components/SummaryCards";
 import { ExportPreview } from "@/components/ExportPreview";
 import { AiAssistPlaceholder } from "@/components/AiAssistPlaceholder";
 import { VariantsEditor } from "@/components/VariantsEditor";
+import { EnvironmentManager } from "@/components/EnvironmentManager";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Home } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Home } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { analyzePayload, safeParseJson } from "@/lib/analyzer";
 import { generateTestCases } from "@/lib/generator";
@@ -18,7 +20,9 @@ import { generateRuleCases } from "@/lib/rules";
 import { generateVariantCases } from "@/lib/variants";
 import { buildEnvExample, buildSpecFile, type AttachmentMode } from "@/lib/specBuilder";
 import { DEFAULT_CONFIG, clearProject, loadProject, saveProject } from "@/lib/storage";
-import type { ConditionalRule, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step, VariantSet } from "@/lib/types";
+import { buildProjectExport, parseProjectExport, suggestFilename } from "@/lib/projectBundle";
+import { downloadTextFile } from "@/lib/download";
+import type { ConditionalRule, Environment, FieldConstraints, FieldSchema, FieldType, GeneratedTestCase, ProjectState, RequestConfig, Step, VariantSet } from "@/lib/types";
 
 interface Props {
   onExit: () => void;
@@ -30,6 +34,8 @@ export function Workspace({ onExit }: Props) {
   const [cases, setCases] = useState<GeneratedTestCase[]>([]);
   const [rules, setRules] = useState<ConditionalRule[]>([]);
   const [variants, setVariants] = useState<VariantSet[]>([]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [activeEnvId, setActiveEnvId] = useState<string | null>(null);
   const [step, setStep] = useState<Step>(1);
   const [reachable, setReachable] = useState<Step>(1);
   const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>("separate");
