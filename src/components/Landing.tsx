@@ -21,6 +21,9 @@ export function Landing({ onStart, hasDraft }: Props) {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
+              <a href="/guide">Guide</a>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
               <a href="https://playwright.dev/docs/api-testing" target="_blank" rel="noreferrer">Playwright docs</a>
             </Button>
             <Button onClick={onStart}>
