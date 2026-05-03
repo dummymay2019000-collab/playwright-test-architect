@@ -220,6 +220,9 @@ export function Workspace({ onExit }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/guide"><BookOpen className="w-4 h-4 mr-1.5" /> Guide</Link>
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => goTo(Math.max(1, step - 1) as Step)} disabled={step === 1}>
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>
@@ -233,7 +236,19 @@ export function Workspace({ onExit }: Props) {
 
         <div className="px-4 md:px-8 py-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
           {step === 1 && (
-            <RequestSetupForm config={config} onChange={setConfig} onReset={handleReset} />
+            <>
+              <EnvironmentManager
+                config={config}
+                environments={environments}
+                activeEnvId={activeEnvId}
+                onChangeEnvironments={setEnvironments}
+                onActivate={setActiveEnvId}
+                onApply={handleApplyEnv}
+                onExportProject={handleExportProject}
+                onImportProject={handleImportProject}
+              />
+              <RequestSetupForm config={config} onChange={setConfig} onReset={handleReset} />
+            </>
           )}
 
           {step === 2 && (
