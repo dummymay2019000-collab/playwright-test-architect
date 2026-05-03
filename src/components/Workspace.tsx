@@ -49,6 +49,8 @@ export function Workspace({ onExit }: Props) {
       setCases(saved.cases ?? []);
       setRules(saved.rules ?? []);
       setVariants(saved.variants ?? []);
+      setEnvironments(saved.environments ?? []);
+      setActiveEnvId(saved.activeEnvId ?? null);
       setStep(saved.step ?? 1);
       const r = Math.max(1, saved.step ?? 1) as Step;
       setReachable(r);
@@ -57,8 +59,45 @@ export function Workspace({ onExit }: Props) {
 
   // Persist
   useEffect(() => {
-    saveProject({ config, fields, cases, rules, variants, step });
-  }, [config, fields, cases, rules, variants, step]);
+    saveProject({ config, fields, cases, rules, variants, environments, activeEnvId, step });
+  }, [config, fields, cases, rules, variants, environments, activeEnvId, step]);
+
+  const handleApplyEnv = (env: Environment) => {
+    setConfig({
+      ...config,
+      baseUrl: env.baseUrl,
+      endpoint: env.endpoint,
+      headers: env.headers.map(h => ({ ...h })),
+      auth: { ...env.auth },
+      bodyJson: env.bodyJson || config.bodyJson,
+    });
+    setActiveEnvId(env.id);
+  };
+
+  const handleExportProject = () => {
+    const bundle = buildProjectExport({ config, fields, cases, rules, variants, environments, activeEnvId });
+    downloadTextFile(suggestFilename(config.apiName), JSON.stringify(bundle, null, 2), "application/json");
+    toast.success("Configuration exported");
+  };
+
+  const handleImportProject = async (file: File) => {
+    const text = await file.text();
+    const r = parseProjectExport(text);
+    if (!r.ok || !r.data) {
+      toast.error("Import failed", { description: r.error });
+      return;
+    }
+    const d = r.data;
+    setConfig({ ...DEFAULT_CONFIG, ...d.config });
+    setFields(d.fields ?? []);
+    setCases(d.cases ?? []);
+    setRules(d.rules ?? []);
+    setVariants(d.variants ?? []);
+    setEnvironments(d.environments ?? []);
+    setActiveEnvId(d.activeEnvId ?? null);
+    setReachable(5);
+    toast.success("Configuration imported");
+  };
 
   const jsonError = useMemo(() => {
     if (!config.bodyJson.trim()) return null;
