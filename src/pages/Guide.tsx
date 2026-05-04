@@ -179,8 +179,14 @@ export default function Guide() {
           <Section id="environments" title="Environments">
             <p>
               Save named presets — dev, staging, prod, sandbox — each with its own base URL, endpoint, headers, auth env
-              variable, and full payload override. Switch between them in step 1 and click <strong>Apply to form</strong> to
-              load the values into the active configuration.
+              variable, and full payload override. Pick an active environment from the <strong>Active</strong> dropdown in
+              step 1 and TestForge will use that environment's values automatically for the rest of the workflow.
+            </p>
+            <p>
+              <strong>Active environment overrides everything downstream.</strong> Payload analysis, constraint inference,
+              test case generation, the Playwright spec, the <code>.env.example</code>, and the CSV/XLSX export all read
+              from the active environment's overridden payload, headers, and auth — not the form values. Click{" "}
+              <strong>Apply to form</strong> if you also want the values copied back into the visible form fields.
             </p>
             <p>
               Use <strong>Add from current</strong> to snapshot whatever you have on screen as a new environment. Each
@@ -192,7 +198,8 @@ export default function Guide() {
           <Section id="import-export" title="Import / Export configuration">
             <p>
               Use <strong>Export config</strong> on step 1 to download a single JSON file containing your full project state:
-              request setup, fields, constraints, variants, rules, environments, and generated cases.
+              request setup, fields, constraints, variants, rules, environments, and generated cases (including any external
+              IDs you've assigned).
             </p>
             <p>
               When the API later changes (a new field added, an old one removed), use <strong>Import config</strong> to
@@ -210,6 +217,13 @@ export default function Guide() {
               import directly into Azure DevOps, Jira/Xray, Zephyr, or TestRail. Each case includes a standardized 5-step
               procedure (env setup → headers/auth → payload → request → response verification), test data, expected result,
               priority, and tags.
+            </p>
+            <p>
+              <strong>External ID column.</strong> Each generated case has an optional <em>External ID</em> field (blank by
+              default) editable inline on step 4. Paste the ADO / Jira / Xray / TestRail work-item ID once your test case
+              has been synced into your tracker — TestForge will emit it as the <code>ID</code> column (ADO) or{" "}
+              <code>Test Case ID</code> column (Jira) so re-imports update the right item instead of creating duplicates.
+              External IDs are saved with the project export bundle, so they survive across sessions and teammates.
             </p>
             <p>
               Customize the <strong>Naming template</strong> (prefix, route slug style, category/risk wording) so titles match
