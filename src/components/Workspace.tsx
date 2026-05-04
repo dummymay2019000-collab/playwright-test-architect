@@ -99,12 +99,30 @@ export function Workspace({ onExit }: Props) {
     toast.success("Configuration imported");
   };
 
+  /**
+   * Effective config used for analysis, generation, and export.
+   * If an environment is active, its baseUrl / endpoint / headers / auth / payload
+   * override the form values so the generator sees env-specific data.
+   */
+  const effectiveConfig = useMemo<RequestConfig>(() => {
+    const env = activeEnvId ? environments.find(e => e.id === activeEnvId) : null;
+    if (!env) return config;
+    return {
+      ...config,
+      baseUrl: env.baseUrl,
+      endpoint: env.endpoint,
+      headers: env.headers.map(h => ({ ...h })),
+      auth: { ...env.auth },
+      bodyJson: env.bodyJson?.trim() ? env.bodyJson : config.bodyJson,
+    };
+  }, [config, activeEnvId, environments]);
+
   const jsonError = useMemo(() => {
-    if (!config.bodyJson.trim()) return null;
-    const r = safeParseJson(config.bodyJson);
+    if (!effectiveConfig.bodyJson.trim()) return null;
+    const r = safeParseJson(effectiveConfig.bodyJson);
     if (r.ok) return null;
     return r.error;
-  }, [config.bodyJson]);
+  }, [effectiveConfig.bodyJson]);
 
   const goTo = (s: Step) => {
     setStep(s);
@@ -112,7 +130,11 @@ export function Workspace({ onExit }: Props) {
   };
 
   const handleAnalyze = () => {
-    const { fields: detected, error } = analyzePayload(config.bodyJson);
+    const activeEnv = activeEnvId ? environments.find(e => e.id === activeEnvId) : null;
+    if (activeEnv) {
+      toast.info(`Analyzing payload from "${activeEnv.name}"`);
+    }
+    const { fields: detected, error } = analyzePayload(effectiveConfig.bodyJson);
     if (error) {
       toast.error("Invalid JSON payload", { description: error });
       return;
@@ -147,9 +169,9 @@ export function Workspace({ onExit }: Props) {
       toast.error("Analyze your payload first");
       return;
     }
-    const generated = generateTestCases(config, fields);
-    const ruleCases = generateRuleCases(config, fields, rules);
-    const variantCases = generateVariantCases(config, fields, variants);
+    const generated = generateTestCases(effectiveConfig, fields);
+    const ruleCases = generateRuleCases(effectiveConfig, fields, rules);
+    const variantCases = generateVariantCases(effectiveConfig, fields, variants);
     const all = [...generated, ...variantCases, ...ruleCases];
     setCases(all);
     const extras: string[] = [];
@@ -160,8 +182,8 @@ export function Workspace({ onExit }: Props) {
     );
   };
 
-  const spec = useMemo(() => buildSpecFile(config, cases, { attachmentMode }), [config, cases, attachmentMode]);
-  const envExample = useMemo(() => buildEnvExample(config), [config]);
+  const spec = useMemo(() => buildSpecFile(effectiveConfig, cases, { attachmentMode }), [effectiveConfig, cases, attachmentMode]);
+  const envExample = useMemo(() => buildEnvExample(effectiveConfig), [effectiveConfig]);
 
   const handleNext = () => {
     if (step === 1) {
