@@ -273,7 +273,7 @@ export function buildAdoRows(
 
     steps.forEach((step, i) => {
       rows.push({
-        ID: i === 0 ? tc.id : "",
+        ID: i === 0 ? (tc.externalId ?? "") : "",
         "Work Item Type": "Test Case",
         Title: i === 0 ? title : "",
         "Test Step": i + 1,
@@ -329,7 +329,7 @@ export function buildJiraRows(
     ].join(" ");
 
     return {
-      "Test Case ID": tc.id,
+      "Test Case ID": tc.externalId ?? "",
       Summary: buildTestCaseTitle(config, tc, template),
       Description: tc.reason,
       Preconditions: buildPreconditions(config, tc),

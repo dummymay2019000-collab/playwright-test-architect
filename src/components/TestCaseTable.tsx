@@ -18,9 +18,13 @@ export function TestCaseTable({ cases, onChange, onRegenerate }: Props) {
   const [editId, setEditId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [draftStatus, setDraftStatus] = useState(0);
+  const [draftExternalId, setDraftExternalId] = useState("");
 
   const setEnabled = (id: string, enabled: boolean) =>
     onChange(cases.map(c => c.id === id ? { ...c, enabled } : c));
+
+  const setExternalId = (id: string, externalId: string) =>
+    onChange(cases.map(c => c.id === id ? { ...c, externalId } : c));
 
   const bulk = (predicate: (c: GeneratedTestCase) => boolean) =>
     onChange(cases.map(c => ({ ...c, enabled: predicate(c) })));
@@ -29,10 +33,13 @@ export function TestCaseTable({ cases, onChange, onRegenerate }: Props) {
     setEditId(c.id);
     setDraftName(c.name);
     setDraftStatus(c.expectedStatus);
+    setDraftExternalId(c.externalId ?? "");
   };
   const saveEdit = () => {
     if (!editId) return;
-    onChange(cases.map(c => c.id === editId ? { ...c, name: draftName, expectedStatus: draftStatus } : c));
+    onChange(cases.map(c => c.id === editId
+      ? { ...c, name: draftName, expectedStatus: draftStatus, externalId: draftExternalId.trim() || undefined }
+      : c));
     setEditId(null);
   };
 
@@ -69,6 +76,7 @@ export function TestCaseTable({ cases, onChange, onRegenerate }: Props) {
               <TableHeader>
                 <TableRow className="bg-muted/40">
                   <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-36">External ID</TableHead>
                   <TableHead>Case</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Field</TableHead>
@@ -82,6 +90,23 @@ export function TestCaseTable({ cases, onChange, onRegenerate }: Props) {
                   <TableRow key={c.id} data-state={c.enabled ? "selected" : undefined} className={c.enabled ? "" : "opacity-60"}>
                     <TableCell>
                       <Checkbox checked={c.enabled} onCheckedChange={(v) => setEnabled(c.id, !!v)} />
+                    </TableCell>
+                    <TableCell>
+                      {editId === c.id ? (
+                        <Input
+                          value={draftExternalId}
+                          onChange={e => setDraftExternalId(e.target.value)}
+                          placeholder="e.g. TC-1234"
+                          className="h-8 font-mono text-xs"
+                        />
+                      ) : (
+                        <Input
+                          value={c.externalId ?? ""}
+                          onChange={e => setExternalId(c.id, e.target.value)}
+                          placeholder="—"
+                          className="h-8 font-mono text-xs"
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       {editId === c.id ? (
