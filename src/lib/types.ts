@@ -78,6 +78,9 @@ export interface FieldSchema {
 
 export interface GeneratedTestCase {
   id: string;
+  /** Optional ID from an external test management system (ADO, Jira/Xray, TestRail).
+   * Used when syncing back into those systems so updates land on the right work item. */
+  externalId?: string;
   name: string;
   enabled: boolean;
   category: Category;
