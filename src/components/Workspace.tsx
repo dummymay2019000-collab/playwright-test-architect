@@ -307,7 +307,7 @@ export function Workspace({ onExit }: Props) {
               <ExportPreview
                 spec={spec}
                 envExample={envExample}
-                config={config}
+                config={effectiveConfig}
                 cases={cases}
                 attachmentMode={attachmentMode}
                 onAttachmentModeChange={setAttachmentMode}
