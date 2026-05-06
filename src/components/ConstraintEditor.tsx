@@ -60,7 +60,7 @@ function countActive(c: FieldConstraints): number {
 function ConstraintFields({ field, onChange }: { field: FieldSchema; onChange: (c: FieldConstraints) => void }) {
   const c = field.constraints;
   const upd = (patch: FieldConstraints) => onChange({ ...c, ...patch });
-  const isString = field.type === "string" || field.type === "email" || field.type === "date";
+  const isString = field.type === "string" || field.type === "email" || field.type === "date" || field.type === "ipv4" || field.type === "domain" || field.type === "hostPort" || field.type === "caCertPem";
   const isNumber = field.type === "number";
 
   return (
