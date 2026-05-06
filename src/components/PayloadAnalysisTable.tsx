@@ -7,7 +7,7 @@ import { Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-const TYPES: FieldType[] = ["string", "email", "number", "boolean", "date", "array", "object", "unknown"];
+const TYPES: FieldType[] = ["string", "email", "number", "boolean", "date", "ipv4", "domain", "hostPort", "caCertPem", "array", "object", "unknown"];
 
 interface Props {
   fields: FieldSchema[];

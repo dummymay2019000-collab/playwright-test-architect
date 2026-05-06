@@ -12,6 +12,15 @@ const SPECIAL_CHARS = `<script>alert('xss')</script> 𝓤𝓷𝓲𝓬𝓸𝓭�
 const INJECTION = `' OR 1=1 --`;
 const INVALID_EMAILS = ["not-an-email", "missing@tld", "@nodomain.com", "spaces in@email.com"];
 const INVALID_DATES = ["2026-13-40", "not-a-date", "31/12/2026"];
+const INVALID_IPV4 = ["999.1.1.1", "1.2.3", "1.2.3.4.5", "abc.def.ghi.jkl", "256.256.256.256", " 1.1.1.1"];
+const INVALID_DOMAINS_3 = ["abc", "abc.com", "a.b.c.d", "abc..com", "-abc.xyz.com", "abc.xyz.com.", "abc.xyz", ".abc.xyz.com"];
+const INVALID_HOST_PORT = ["abc.xyz.com", "abc.xyz.com:", "abc.xyz.com:abc", "abc.xyz.com:99999", "abc.xyz.com:0", ":8080", "abc.xyz.com:80:80"];
+const INVALID_CA_PEM = [
+  "not a certificate",
+  "MIID...justbase64withoutheaders==",
+  "-----BEGIN CERTIFICATE-----\nMIID...\n", // missing END
+  "-----BEGIN PRIVATE KEY-----\nMIID...\n-----END PRIVATE KEY-----", // wrong type
+];
 
 interface DepthFlags {
   boundary: boolean;
@@ -34,6 +43,10 @@ function wrongTypeValue(type: FieldSchema["type"]): unknown {
     case "string":
     case "email":
     case "date":
+    case "ipv4":
+    case "domain":
+    case "hostPort":
+    case "caCertPem":
       return 12345;
     case "number":
       return "not-a-number";
@@ -97,7 +110,11 @@ export function generateTestCases(config: RequestConfig, fields: FieldSchema[]):
     }
 
     // Empty string
-    if ((f.type === "string" || f.type === "email" || f.type === "date") && !c.allowEmpty) {
+    if (
+      (f.type === "string" || f.type === "email" || f.type === "date" ||
+        f.type === "ipv4" || f.type === "domain" || f.type === "hostPort" || f.type === "caCertPem") &&
+      !c.allowEmpty
+    ) {
       cases.push(mkCase({
         name: `Empty string for ${f.path}`,
         category: "validation",
@@ -180,6 +197,62 @@ export function generateTestCases(config: RequestConfig, fields: FieldSchema[]):
           expectedStatus: validation,
           risk: "medium",
           reason: "Verifies date parsing rejects malformed values.",
+        }));
+      }
+    }
+
+    if (f.type === "ipv4") {
+      for (const inv of INVALID_IPV4) {
+        cases.push(mkCase({
+          name: `Invalid IPv4 in ${f.path}: "${inv}"`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "IPv4 must be four 0–255 octets separated by dots.",
+        }));
+      }
+    }
+
+    if (f.type === "domain") {
+      for (const inv of INVALID_DOMAINS_3) {
+        cases.push(mkCase({
+          name: `Invalid 3-label domain in ${f.path}: "${inv}"`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "Domain must have exactly 3 labels (e.g. abc.xyz.com); fewer or more dots are invalid.",
+        }));
+      }
+    }
+
+    if (f.type === "hostPort") {
+      for (const inv of INVALID_HOST_PORT) {
+        cases.push(mkCase({
+          name: `Invalid host:port in ${f.path}: "${inv}"`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "Value must follow domain:port (port 1–65535).",
+        }));
+      }
+    }
+
+    if (f.type === "caCertPem") {
+      for (const inv of INVALID_CA_PEM) {
+        cases.push(mkCase({
+          name: `Invalid CA certificate (PEM) in ${f.path}`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "CA cert must be Base64 PEM wrapped with BEGIN/END CERTIFICATE headers.",
         }));
       }
     }

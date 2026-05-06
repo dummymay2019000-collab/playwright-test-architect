@@ -94,6 +94,8 @@ function evalCondition(cond: Condition, payload: unknown): boolean {
     case "gte": return found && typeof value === "number" && value >= Number(cond.value);
     case "lt": return found && typeof value === "number" && value < Number(cond.value);
     case "lte": return found && typeof value === "number" && value <= Number(cond.value);
+    case "contains": return found && typeof value === "string" && value.includes(cond.value);
+    case "ncontains": return !found || (typeof value === "string" && !value.includes(cond.value));
     case "regex": {
       if (!found || typeof value !== "string") return false;
       try { return new RegExp(cond.value).test(value); } catch { return false; }
@@ -150,6 +152,8 @@ function overridesToSatisfy(node: ConditionNode): Record<string, unknown> | null
     case "gte": return { [c.path]: Number(c.value) };
     case "lt": return { [c.path]: Number(c.value) - 1 };
     case "lte": return { [c.path]: Number(c.value) };
+    case "contains": return { [c.path]: `prefix-${c.value}-suffix` };
+    case "ncontains": return { [c.path]: "__no_match__" };
     case "present": return { [c.path]: "__present__" };
     case "absent": return null; // handled separately via removePaths below
     case "regex": return null; // hard to synthesize; skip
@@ -344,12 +348,14 @@ export const COMPARATOR_LABELS: Record<ComparatorOp, string> = {
   lt: "<",
   lte: "<=",
   regex: "matches regex",
+  contains: "contains",
+  ncontains: "does not contain",
   present: "is present",
   absent: "is absent",
 };
 
 export const COMPARATORS: ComparatorOp[] = [
-  "eq", "neq", "in", "nin", "gt", "gte", "lt", "lte", "regex", "present", "absent",
+  "eq", "neq", "in", "nin", "gt", "gte", "lt", "lte", "regex", "contains", "ncontains", "present", "absent",
 ];
 
 export function opNeedsValue(op: ComparatorOp): boolean {
