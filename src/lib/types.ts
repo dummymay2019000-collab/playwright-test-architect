@@ -10,6 +10,10 @@ export type FieldType =
   | "date"
   | "array"
   | "object"
+  | "ipv4"
+  | "domain"
+  | "hostPort"
+  | "caCertPem"
   | "unknown";
 
 export type Confidence = "high" | "medium" | "low";
@@ -107,6 +111,8 @@ export type ComparatorOp =
   | "lt"
   | "lte"
   | "regex"
+  | "contains"
+  | "ncontains"
   | "present"
   | "absent";
 
