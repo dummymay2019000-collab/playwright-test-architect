@@ -12,6 +12,15 @@ const SPECIAL_CHARS = `<script>alert('xss')</script> 𝓤𝓷𝓲𝓬𝓸𝓭�
 const INJECTION = `' OR 1=1 --`;
 const INVALID_EMAILS = ["not-an-email", "missing@tld", "@nodomain.com", "spaces in@email.com"];
 const INVALID_DATES = ["2026-13-40", "not-a-date", "31/12/2026"];
+const INVALID_IPV4 = ["999.1.1.1", "1.2.3", "1.2.3.4.5", "abc.def.ghi.jkl", "256.256.256.256", " 1.1.1.1"];
+const INVALID_DOMAINS_3 = ["abc", "abc.com", "a.b.c.d", "abc..com", "-abc.xyz.com", "abc.xyz.com.", "abc.xyz", ".abc.xyz.com"];
+const INVALID_HOST_PORT = ["abc.xyz.com", "abc.xyz.com:", "abc.xyz.com:abc", "abc.xyz.com:99999", "abc.xyz.com:0", ":8080", "abc.xyz.com:80:80"];
+const INVALID_CA_PEM = [
+  "not a certificate",
+  "MIID...justbase64withoutheaders==",
+  "-----BEGIN CERTIFICATE-----\nMIID...\n", // missing END
+  "-----BEGIN PRIVATE KEY-----\nMIID...\n-----END PRIVATE KEY-----", // wrong type
+];
 
 interface DepthFlags {
   boundary: boolean;
@@ -34,6 +43,10 @@ function wrongTypeValue(type: FieldSchema["type"]): unknown {
     case "string":
     case "email":
     case "date":
+    case "ipv4":
+    case "domain":
+    case "hostPort":
+    case "caCertPem":
       return 12345;
     case "number":
       return "not-a-number";
