@@ -110,7 +110,11 @@ export function generateTestCases(config: RequestConfig, fields: FieldSchema[]):
     }
 
     // Empty string
-    if ((f.type === "string" || f.type === "email" || f.type === "date") && !c.allowEmpty) {
+    if (
+      (f.type === "string" || f.type === "email" || f.type === "date" ||
+        f.type === "ipv4" || f.type === "domain" || f.type === "hostPort" || f.type === "caCertPem") &&
+      !c.allowEmpty
+    ) {
       cases.push(mkCase({
         name: `Empty string for ${f.path}`,
         category: "validation",
@@ -193,6 +197,62 @@ export function generateTestCases(config: RequestConfig, fields: FieldSchema[]):
           expectedStatus: validation,
           risk: "medium",
           reason: "Verifies date parsing rejects malformed values.",
+        }));
+      }
+    }
+
+    if (f.type === "ipv4") {
+      for (const inv of INVALID_IPV4) {
+        cases.push(mkCase({
+          name: `Invalid IPv4 in ${f.path}: "${inv}"`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "IPv4 must be four 0–255 octets separated by dots.",
+        }));
+      }
+    }
+
+    if (f.type === "domain") {
+      for (const inv of INVALID_DOMAINS_3) {
+        cases.push(mkCase({
+          name: `Invalid 3-label domain in ${f.path}: "${inv}"`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "Domain must have exactly 3 labels (e.g. abc.xyz.com); fewer or more dots are invalid.",
+        }));
+      }
+    }
+
+    if (f.type === "hostPort") {
+      for (const inv of INVALID_HOST_PORT) {
+        cases.push(mkCase({
+          name: `Invalid host:port in ${f.path}: "${inv}"`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "Value must follow domain:port (port 1–65535).",
+        }));
+      }
+    }
+
+    if (f.type === "caCertPem") {
+      for (const inv of INVALID_CA_PEM) {
+        cases.push(mkCase({
+          name: `Invalid CA certificate (PEM) in ${f.path}`,
+          category: "format",
+          fieldPath: f.path,
+          override: { [f.path]: inv },
+          expectedStatus: validation,
+          risk: "medium",
+          reason: "CA cert must be Base64 PEM wrapped with BEGIN/END CERTIFICATE headers.",
         }));
       }
     }
